@@ -1,0 +1,35 @@
+# env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Go
+control-plane/bin/
+control-plane/dist/
+adapter-sdk/bin/
+*.exe
+
+# Python
+__pycache__/
+*.pyc
+distiller/.venv/
+distiller/venv/
+*.egg-info/
+
+# Node / frontend
+node_modules/
+console/dist/
+console/.vite/
+*.tsbuildinfo
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+*.swp
+
+# build artifacts
+*.log
+/tmp/
