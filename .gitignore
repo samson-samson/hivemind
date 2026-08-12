@@ -33,3 +33,9 @@ console/.vite/
 # build artifacts
 *.log
 /tmp/
+
+# playwright mcp artifacts
+.playwright-mcp/
+*.png
+*.jpg
+*.jpeg

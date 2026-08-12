@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-zinc-950 text-zinc-200 antialiased;
+  overflow-x: hidden;
+}
+
+/* reactflow 深色适配 */
+.react-flow {
+  @apply bg-zinc-950;
+}
+.react-flow__controls {
+  @apply border border-zinc-700 rounded overflow-hidden;
+}
+.react-flow__controls button {
+  @apply bg-zinc-900 border-b border-zinc-700 text-zinc-300 hover:bg-zinc-800;
+}
+.react-flow__minimap {
+  @apply bg-zinc-900 rounded;
+}
+.react-flow__edge-path {
+  stroke: #52525b;
+}
+.react-flow__attribution {
+  @apply bg-transparent text-zinc-600;
+}
+
+/* 血缘图生长动画 */
+@keyframes lineage-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.lineage-node {
+  animation: lineage-in 0.5s ease-out both;
+}
+
+/* 租约心跳脉冲 */
+@keyframes heartbeat {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(52, 211, 153, 0);
+  }
+}
+.lease-pulse {
+  animation: heartbeat 1.6s ease-in-out infinite;
+}
+
+/* 飞轮 */
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.flywheel-spin {
+  animation: spin-slow 6s linear infinite;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-zinc-700 rounded;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
