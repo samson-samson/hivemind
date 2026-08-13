@@ -13,6 +13,7 @@
 import argparse
 import json
 import sys
+import urllib.request
 
 import sls_reader
 import llm
@@ -51,12 +52,43 @@ def fmt_report(result: dict) -> str:
     return "\n".join(lines)
 
 
+def push_to_platform(cp_base: str, incident_id: str, result: dict) -> list[str]:
+    """把诊断结果写入 OpsHive 控制平面 IOM：每个假设成为一条 Hypothesis 发言。
+
+    语义：headless-diagnoser 作为"数字员工"，通过「发言人」协议提交提案；
+    会议室右侧假设面板与协同诊断流会实时出现这些发言。
+    """
+    posted = []
+    for i, h in enumerate(result.get("hypotheses", [])):
+        body = json.dumps({
+            "topic": f"[AI诊断] {h.get('root_cause', '')}",
+            "supporting": [],
+            "independence_weight": round(float(h.get("confidence", 0.1)), 2),
+            "confidence": round(float(h.get("confidence", 0.1)), 2),
+            "status": "supported" if h.get("confidence", 0) >= 0.5 else "proposed",
+            "source": "headless-diagnoser",
+        }).encode()
+        req = urllib.request.Request(
+            f"{cp_base}/api/v1/incidents/{incident_id}/hypotheses",
+            data=body,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            created = json.loads(resp.read().decode())
+            posted.append(created.get("id", f"hyp-{i}"))
+        print(f"  → 提交假设 [{h.get('confidence')}] {h.get('root_cause', '')[:60]}", file=sys.stderr)
+    return posted
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="OpsHive 智能诊断（只读）")
     ap.add_argument("--index", type=int, default=0, help="诊断第几条事故（按时间倒序，默认最近一条）")
     ap.add_argument("--hours", type=int, default=168, help="采集时间窗（小时）")
     ap.add_argument("--report", type=str, default="", help="报告输出路径（默认 stdout）")
     ap.add_argument("--list", action="store_true", help="仅列出最近事故")
+    ap.add_argument("--push", metavar="INCIDENT_ID", default="", help="把诊断假设写入控制平面事故（会议室可见）")
+    ap.add_argument("--cp-base", default="http://localhost:8081", help="控制平面 base URL")
     args = ap.parse_args()
 
     print(f"[1/3] 读取最近事故（{args.hours}h 窗口）…", file=sys.stderr)
@@ -91,6 +123,9 @@ def main() -> int:
         with open(args.report.replace(".md", ".json"), "w") as f:
             json.dump(result, f, ensure_ascii=False, indent=2)
         print(f"\n报告已写入 {args.report}", file=sys.stderr)
+    if args.push:
+        print(f"[4/4] 提交假设到控制平面（{args.cp_base}/incidents/{args.push}）…", file=sys.stderr)
+        push_to_platform(args.cp_base, args.push, result)
     return 0
 
 

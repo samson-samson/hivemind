@@ -61,29 +61,38 @@ function EventCard({ e }: { e: IncidentEvent }) {
 export function MeetingRoom() {
   const { incidentId = '' } = useParams();
 
+  // 10s 轮询：让 headless-diagnoser 等 agent 提交的假设/证据实时进会议室。
+  // （SSE 就绪后此处可移除，EventSource 已预留。）
+  const REFRESH = { refetchInterval: 10_000 };
   const { data: incident } = useQuery({
     queryKey: ['incident', incidentId],
     queryFn: () => api.getIncident(incidentId),
+    ...REFRESH,
   });
   const { data: stats } = useQuery({
     queryKey: ['stats', incidentId],
     queryFn: () => api.getStats(incidentId),
+    ...REFRESH,
   });
   const { data: events } = useQuery({
     queryKey: ['events', incidentId],
     queryFn: () => api.listEvents(incidentId),
+    ...REFRESH,
   });
   const { data: leases } = useQuery({
     queryKey: ['leases', incidentId],
     queryFn: () => api.listLeases(incidentId),
+    ...REFRESH,
   });
   const { data: hypotheses } = useQuery({
     queryKey: ['hypotheses', incidentId],
     queryFn: () => api.listHypotheses(incidentId),
+    ...REFRESH,
   });
   const { data: guidance } = useQuery({
     queryKey: ['guidance', incidentId],
     queryFn: () => api.listGuidance(incidentId),
+    ...REFRESH,
   });
 
   const agents = new Map<string, { roles: string[]; leases: string[]; active: boolean }>();
