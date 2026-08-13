@@ -2,6 +2,7 @@ package iam
 
 import (
 	"context"
+	"sort"
 	"sync"
 )
 
@@ -128,6 +129,10 @@ func (m *MemoryStore) ListIncidents(_ context.Context) ([]*Incident, error) {
 	for _, inc := range m.incidents {
 		out = append(out, inc)
 	}
+	// map 遍历顺序不稳定：按时间倒序（最新事故在前），保证前端列表稳定。
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].Timestamp.After(out[j].Timestamp)
+	})
 	return out, nil
 }
 

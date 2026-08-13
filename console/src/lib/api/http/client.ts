@@ -381,9 +381,43 @@ export class HttpOpsHiveApi implements OpsHiveApi {
     return request<BackendStats>(`/api/v1/incidents/${id}/stats`).then(normStats);
   }
 
-  async listEvents(_id: ID): Promise<IncidentEvent[]> {
-    // 完整历史由 listXxx 快照重建；SSE 负责增量。
-    return [];
+  /**
+   * 事件快照：后端无独立事件表，由各实体列表按时间合成（供时间线初始渲染；
+   * 增量由 subscribeEvents 的 SSE 提供）。
+   */
+  async listEvents(id: ID): Promise<IncidentEvent[]> {
+    const [workNodes, ops, evs, facts, hyps, guides] = await Promise.all([
+      this.listWorkNodes(id),
+      this.listOperations(id),
+      this.listEvidence(id),
+      this.listFacts(id),
+      this.listHypotheses(id),
+      this.listGuidance(id),
+    ]);
+    const events: IncidentEvent[] = [];
+    let seq = 0;
+    const push = (type: IncidentEvent['type'], at: string, actor: string, summary: string, ref_id: ID | null) => {
+      events.push({ seq: ++seq, incident_id: id, type, at, actor, summary, ref_id });
+    };
+    for (const w of workNodes) {
+      push('work_node.created', w.created_at, w.assignee ?? 'ic', `工作单元：${w.question}`, w.id);
+    }
+    for (const o of ops) {
+      push('operation.registered', o.registered_at, o.registered_by, o.summary, o.id);
+    }
+    for (const e of evs) {
+      push('evidence.appended', e.timestamp, e.source, e.summary, e.id);
+    }
+    for (const f of facts) {
+      push('fact.posted', f.confirmed_at, f.confirmed_by, f.statement, f.id);
+    }
+    for (const h of hyps) {
+      push('hypothesis.posted', h.updated_at, h.proposed_by, h.topic, h.id);
+    }
+    for (const g of guides) {
+      push('guidance.posted', g.created_at, g.from_ic, g.text, g.id);
+    }
+    return events.sort((a, b) => a.at.localeCompare(b.at));
   }
 
   subscribeEvents(
@@ -406,12 +440,17 @@ export class HttpOpsHiveApi implements OpsHiveApi {
       };
       handler(event);
     };
-    es.addEventListener('incident.updated', listen);
-    es.addEventListener('work_node.updated', listen);
+    // 事件名与后端 bus.Publish 一一对应（见 control-plane/internal/api/handlers.go）。
+    es.addEventListener('incident.created', listen);
     es.addEventListener('work_node.created', listen);
-    es.addEventListener('lease.changed', listen);
-    es.addEventListener('evidence.added', listen);
-    es.addEventListener('fact.confirmed', listen);
+    es.addEventListener('work_node.updated', listen);
+    es.addEventListener('lease.claimed', listen);
+    es.addEventListener('lease.heartbeat', listen);
+    es.addEventListener('lease.released', listen);
+    es.addEventListener('operation.registered', listen);
+    es.addEventListener('evidence.appended', listen);
+    es.addEventListener('fact.posted', listen);
+    es.addEventListener('hypothesis.posted', listen);
     es.addEventListener('guidance.posted', listen);
     es.addEventListener('error', () => onError?.(new Error('sse disconnected')));
     return () => {

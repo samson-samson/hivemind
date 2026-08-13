@@ -56,6 +56,11 @@ func (s *Service) handleCreateIncident(w http.ResponseWriter, r *http.Request) {
 	if sev == "" {
 		sev = iam.SeverityP2
 	}
+	// 未显式给时间窗时默认从当前时刻起（避免零值 0001-01-01 污染前端展示）。
+	tr := req.TimeRange
+	if tr.Start.IsZero() {
+		tr.Start = now
+	}
 
 	inc := &iam.Incident{
 		NodeBase: iam.NodeBase{
@@ -69,7 +74,7 @@ func (s *Service) handleCreateIncident(w http.ResponseWriter, r *http.Request) {
 		Severity:    sev,
 		Status:      status,
 		ICID:        req.ICID,
-		TimeRange:   req.TimeRange,
+		TimeRange:   tr,
 		AlertIDs:    req.AlertIDs,
 		SymptomSet:  req.SymptomSet,
 	}

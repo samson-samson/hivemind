@@ -10,19 +10,24 @@ import { useUiStore } from '../../app/store';
  */
 
 const TYPE_STYLE: Record<EventType, { label: string; dot: string; text: string }> = {
-  'incident.updated': { label: '事故', dot: 'bg-rose-400', text: 'text-rose-300' },
+  'incident.created': { label: '事故', dot: 'bg-rose-400', text: 'text-rose-300' },
+  'work_node.created': { label: '工作单元', dot: 'bg-sky-400', text: 'text-sky-300' },
   'work_node.updated': { label: '工作单元', dot: 'bg-sky-400', text: 'text-sky-300' },
-  'lease.changed': { label: '租约/去重', dot: 'bg-amber-400', text: 'text-amber-300' },
-  'evidence.added': { label: '证据', dot: 'bg-emerald-400', text: 'text-emerald-300' },
-  'fact.confirmed': { label: '事实确认', dot: 'bg-emerald-300', text: 'text-emerald-200' },
-  'guidance.added': { label: 'IC 决策', dot: 'bg-violet-400', text: 'text-violet-300' },
+  'lease.claimed': { label: '租约/去重', dot: 'bg-amber-400', text: 'text-amber-300' },
+  'lease.heartbeat': { label: '租约/去重', dot: 'bg-amber-400', text: 'text-amber-300' },
+  'lease.released': { label: '租约/去重', dot: 'bg-amber-400', text: 'text-amber-300' },
+  'operation.registered': { label: '查询', dot: 'bg-amber-300', text: 'text-amber-200' },
+  'evidence.appended': { label: '证据', dot: 'bg-emerald-400', text: 'text-emerald-300' },
+  'fact.posted': { label: '事实确认', dot: 'bg-emerald-300', text: 'text-emerald-200' },
+  'hypothesis.posted': { label: '假设', dot: 'bg-purple-400', text: 'text-purple-300' },
+  'guidance.posted': { label: 'IC 决策', dot: 'bg-violet-400', text: 'text-violet-300' },
 };
 
-/** 事件 ref 前缀 → 定位目标视图 */
+/** 事件 ref 前缀 → 定位目标视图（兼容 mock 连字符 id 与后端下划线 id） */
 function targetView(refId: string | null): string | null {
   if (!refId) return null;
-  if (refId.startsWith('ev-') || refId.startsWith('op-') || refId.startsWith('fact-') || refId.startsWith('hyp-')) return 'evidence';
-  if (refId.startsWith('wn-')) return 'work-graph';
+  if (/^(ev[-_]|op[-_]|fact[-_]|hyp[-_])/.test(refId)) return 'evidence';
+  if (refId.startsWith('wn-') || refId.startsWith('wn_')) return 'work-graph';
   return null;
 }
 

@@ -179,14 +179,19 @@ export interface IncidentStats {
   updated_at: string;
 }
 
-/** SSE 事件类型（GET /incidents/{id}/events） */
+/** SSE 事件类型（GET /incidents/{id}/events，与后端 Publish 事件名对齐） */
 export type EventType =
-  | 'incident.updated'
+  | 'incident.created'
+  | 'work_node.created'
   | 'work_node.updated'
-  | 'lease.changed'
-  | 'evidence.added'
-  | 'fact.confirmed'
-  | 'guidance.added';
+  | 'lease.claimed'
+  | 'lease.heartbeat'
+  | 'lease.released'
+  | 'operation.registered'
+  | 'evidence.appended'
+  | 'fact.posted'
+  | 'hypothesis.posted'
+  | 'guidance.posted';
 
 export interface IncidentEvent {
   /** 后端保证单调递增，前端用于去重 */

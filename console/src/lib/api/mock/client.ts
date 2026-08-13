@@ -113,7 +113,7 @@ export const mockApi: OpsHiveApi = {
       updated_at: nowIso(),
     };
     state.incidents.unshift(inc);
-    emit({ incident_id: inc.id, type: 'incident.updated', actor: input.ic_name, summary: `手动创建事故：${inc.title}`, ref_id: inc.id });
+    emit({ incident_id: inc.id, type: 'incident.created', actor: input.ic_name, summary: `手动创建事故：${inc.title}`, ref_id: inc.id });
     return delay(inc);
   },
 
@@ -155,7 +155,7 @@ export const mockApi: OpsHiveApi = {
       updated_at: nowIso(),
     };
     state.workNodes.push(node);
-    emit({ incident_id: id, type: 'work_node.updated', actor: 'IC', summary: `新增工作单元：${node.question}`, ref_id: node.id });
+    emit({ incident_id: id, type: 'work_node.created', actor: 'IC', summary: `新增工作单元：${node.question}`, ref_id: node.id });
     return delay(node);
   },
 
@@ -203,7 +203,7 @@ export const mockApi: OpsHiveApi = {
       created_at: nowIso(),
     };
     state.guidance.push(g);
-    emit({ incident_id: id, type: 'guidance.added', actor: input.from_ic, summary: `Guidance：${input.text.slice(0, 60)}`, ref_id: g.id });
+    emit({ incident_id: id, type: 'guidance.posted', actor: input.from_ic, summary: `Guidance：${input.text.slice(0, 60)}`, ref_id: g.id });
     return delay(g);
   },
 
