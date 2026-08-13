@@ -49,6 +49,10 @@ def fmt_report(result: dict) -> str:
         lines.append(f"- {q}")
     for g in result.get("evidence_gaps", []):
         lines.append(f"- 盲区：{g}")
+    lines.append("")
+    lines.append("---")
+    lines.append("> **决策边界**：以上由 AI 完成根因定位与辅助分析；")
+    lines.append("> **止血/修复方案必须由 IC（人类 Incident Commander）决策**，AI 不自动执行任何动作。")
     return "\n".join(lines)
 
 
@@ -89,6 +93,7 @@ def main() -> int:
     ap.add_argument("--list", action="store_true", help="仅列出最近事故")
     ap.add_argument("--push", metavar="INCIDENT_ID", default="", help="把诊断假设写入控制平面事故（会议室可见）")
     ap.add_argument("--cp-base", default="http://localhost:8081", help="控制平面 base URL")
+    ap.add_argument("--alert", metavar="ALARM_NAME", default="", help="从指定告警（alertmanager-alarm-event）出发诊断")
     args = ap.parse_args()
 
     print(f"[1/3] 读取最近事故（{args.hours}h 窗口）…", file=sys.stderr)
@@ -103,17 +108,33 @@ def main() -> int:
     if args.list:
         return 0
 
-    inc = incidents[min(args.index, len(incidents) - 1)]
-    print(f"[2/3] 采集诊断上下文（事故 {inc['time']}）…", file=sys.stderr)
-    ctx = sls_reader.collect_incident_context(inc, hours=max(24, min(args.hours, 24)))
-    ctx["incident_time"] = inc["time"]
+    if args.alert:
+        # 从告警事件出发：按告警名取上下文（dev 环境真实故障告警）
+        print(f"[2/3] 采集告警上下文（{args.alert}）…", file=sys.stderr)
+        matches = [a for a in sls_reader.list_alerts(hours=max(24, args.hours), line=20)
+                   if args.alert in str(a.get("alarm", {}).get("alarmName", ""))]
+        if not matches:
+            print(f"未找到告警 {args.alert}", file=sys.stderr)
+            return 1
+        alarm = matches[-1].get("alarm", {})  # 取最近一条
+        ctx = {
+            "incident": {"alarm": alarm},
+            "related_alerts": [m.get("alarm", {}) for m in matches[-3:]],
+            "gateway_errors": [l.summary for l in sls_reader.app_logs("gateway", hours=24, query="error", line=5)],
+        }
+        ctx["incident_time"] = matches[-1]["time"]
+        source_label = args.alert
+    else:
+        inc = incidents[min(args.index, len(incidents) - 1)]
+        print(f"[2/3] 采集诊断上下文（事故 {inc['time']}）…", file=sys.stderr)
+        ctx = sls_reader.collect_incident_context(inc, hours=max(24, min(args.hours, 24)))
+        ctx["incident_time"] = inc["time"]
+        source_label = inc["time"]
 
     print(f"[3/3] LLM 智能诊断（{llm._config()[2]}）…", file=sys.stderr)
     result = llm.diagnose(ctx)
-    result["incident_id"] = inc["time"]
-    result["incident_message"] = str(
-        (inc.get("record", {}).get("annotations", {}) if isinstance(inc.get("record"), dict) else {}).get("message", "")
-    )[:200]
+    result["incident_id"] = source_label
+    result["incident_message"] = str(ctx.get("incident", {}).get("annotations", {}).get("message", "") if isinstance(ctx.get("incident"), dict) else "")[:200]
 
     report = fmt_report(result)
     print(report)

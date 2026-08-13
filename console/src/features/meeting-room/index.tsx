@@ -205,6 +205,9 @@ export function MeetingRoom() {
         {/* 右：假设面板 */}
         <aside className="col-span-3 min-w-0 overflow-y-auto p-3">
           <h3 className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">根因假设</h3>
+          <p className="mt-1 rounded border border-amber-500/30 bg-amber-500/5 px-2 py-1 text-[9px] leading-snug text-amber-200/80">
+            AI 仅做根因定位与辅助分析；止血/修复方案由 IC 决策
+          </p>
           <ul className="mt-2 space-y-2">
             {[...(hypotheses ?? [])]
               .sort((a, b) => b.confidence - a.confidence)
