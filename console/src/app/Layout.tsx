@@ -4,14 +4,11 @@ import { api } from '../lib/api';
 import { SEVERITY_STYLE, STATUS_COLOR, STATUS_LABEL, fmtPct } from '../lib/format';
 import { IncidentSidebar } from '../features/incident-list';
 
+/** 主导航：会议室为默认主视图，其余收敛为深层入口（保留路由，不占主导航）。 */
 const TABS = [
-  { to: 'overview', label: '事故总览' },
+  { to: 'meeting', label: '会议室' },
   { to: 'work-graph', label: '工作图' },
   { to: 'evidence', label: '证据血缘' },
-  { to: 'swarm', label: '协同态势' },
-  { to: 'deliberation', label: '协商' },
-  { to: 'timeline', label: '时间线' },
-  { to: 'knowledge', label: '知识面板' },
   { to: 'controls', label: 'IC 操作' },
 ];
 

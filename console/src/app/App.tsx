@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { api } from '../lib/api';
 import { ConsoleLayout } from './Layout';
+import { MeetingRoom } from '../features/meeting-room';
 import { IncidentOverview } from '../features/incident-list';
 import { WorkGraphView } from '../features/work-graph';
 import { EvidenceLineageView } from '../features/evidence-lineage';
@@ -30,7 +31,7 @@ function DefaultRedirect() {
     load();
   }, [load]);
 
-  if (firstId) return <Navigate to={`/incidents/${firstId}/overview`} replace />;
+  if (firstId) return <Navigate to={`/incidents/${firstId}`} replace />;
   if (empty) return <div style={{ padding: 48, color: 'var(--text-dim)' }}>暂无事故。请先在后端创建事故。</div>;
   return <div style={{ padding: 48, color: 'var(--text-dim)' }}>加载中…</div>;
 }
@@ -40,10 +41,11 @@ export default function App() {
     <Routes>
       <Route path="/" element={<DefaultRedirect />} />
       <Route path="/incidents/:incidentId" element={<ConsoleLayout />}>
-        <Route index element={<Navigate to="overview" replace />} />
-        <Route path="overview" element={<IncidentOverview />} />
+        <Route index element={<MeetingRoom />} />
+        <Route path="meeting" element={<MeetingRoom />} />
         <Route path="work-graph" element={<WorkGraphView />} />
         <Route path="evidence" element={<EvidenceLineageView />} />
+        <Route path="overview" element={<IncidentOverview />} />
         <Route path="swarm" element={<SwarmView />} />
         <Route path="deliberation" element={<DeliberationView />} />
         <Route path="timeline" element={<TimelineView />} />
