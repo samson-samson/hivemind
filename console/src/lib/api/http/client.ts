@@ -386,6 +386,10 @@ export class HttpOpsHiveApi implements OpsHiveApi {
    * 事件快照：后端无独立事件表，由各实体列表按时间合成（供时间线初始渲染；
    * 增量由 subscribeEvents 的 SSE 提供）。
    */
+  runDiagnose(id: ID): Promise<{ ok: boolean; tail?: string }> {
+    return request<{ ok: boolean; tail?: string }>(`/api/v1/incidents/${id}/diagnose`, { method: 'POST' });
+  }
+
   async listEvents(id: ID): Promise<IncidentEvent[]> {
     const [workNodes, ops, evs, facts, hyps, guides] = await Promise.all([
       this.listWorkNodes(id),

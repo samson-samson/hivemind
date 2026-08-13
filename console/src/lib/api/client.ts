@@ -72,6 +72,9 @@ export interface OpsHiveApi {
   // 指标
   getStats(id: ID): Promise<IncidentStats>;
 
+  /** 触发一次 AI 诊断：headless-diagnoser 进场提交假设（P0 联调通道） */
+  runDiagnose(id: ID): Promise<{ ok: boolean; tail?: string }>;
+
   // 事件流：一次性快照 + SSE 增量（seq 单调递增，前端去重）
   listEvents(id: ID): Promise<IncidentEvent[]>;
   /**

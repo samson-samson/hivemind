@@ -212,6 +212,42 @@ export const mockApi: OpsHiveApi = {
     return delay(state.stats);
   },
 
+  // mock 模式的 AI 诊断：直接往事故里塞一条 headless-diagnoser 假设（演示交互）。
+  runDiagnose: async (id) => {
+    mustIncident(id);
+    const h = {
+      id: `hyp-mock-diag-${Date.now()}`,
+      incident_id: id,
+      topic: '[AI诊断] 模拟假设：示例环境资源水位接近上限（mock 诊断）',
+      supporting: [],
+      refuting: [],
+      independence_weight: 0.6,
+      confidence: 0.6,
+      status: 'strengthening' as const,
+      proposed_by: 'headless-diagnoser',
+      updated_at: new Date().toISOString(),
+      proof_trace: 'mock',
+    };
+    state.hypotheses.push(h);
+    state.events.push({
+      seq: state.events.length + 1,
+      incident_id: id,
+      type: 'hypothesis.posted',
+      at: new Date().toISOString(),
+      actor: 'headless-diagnoser',
+      summary: h.topic,
+      ref_id: h.id,
+    });
+    emit({
+      incident_id: id,
+      type: 'hypothesis.posted',
+      actor: 'headless-diagnoser',
+      summary: h.topic,
+      ref_id: h.id,
+    });
+    return { ok: true };
+  },
+
   listEvents: (id) =>
     delay(state.events.filter((e) => e.incident_id === id).sort((a, b) => a.seq - b.seq)),
 

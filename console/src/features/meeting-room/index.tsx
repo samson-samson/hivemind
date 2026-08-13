@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { api } from '../../lib/api';
 import type { IncidentEvent } from '../../lib/api';
@@ -93,6 +94,28 @@ export function MeetingRoom() {
     queryKey: ['guidance', incidentId],
     queryFn: () => api.listGuidance(incidentId),
     ...REFRESH,
+  });
+
+  // ---- 行动区（让会议室"用起来"） ----
+  const queryClient = useQueryClient();
+  const [guideText, setGuideText] = useState('');
+  const [lastDiag, setLastDiag] = useState('');
+  const diagnose = useMutation({
+    mutationFn: () => api.runDiagnose(incidentId),
+    onSuccess: () => {
+      setLastDiag('AI 诊断完成：headless-diagnoser 已提交假设（10s 内出现在右侧面板）');
+      queryClient.invalidateQueries({ queryKey: ['hypotheses', incidentId] });
+      queryClient.invalidateQueries({ queryKey: ['events', incidentId] });
+    },
+    onError: (e: Error) => setLastDiag(`诊断失败：${e.message.slice(0, 80)}`),
+  });
+  const postGuidance = useMutation({
+    mutationFn: (text: string) => api.createGuidance(incidentId, { from_ic: incident?.ic_name ?? 'ic', text, priority: 'directive' }),
+    onSuccess: () => {
+      setGuideText('');
+      queryClient.invalidateQueries({ queryKey: ['guidance', incidentId] });
+      queryClient.invalidateQueries({ queryKey: ['events', incidentId] });
+    },
   });
 
   const agents = new Map<string, { roles: string[]; leases: string[]; active: boolean }>();
@@ -218,6 +241,33 @@ export function MeetingRoom() {
               <li className="text-[10px] text-zinc-600">暂无假设</li>
             )}
           </ul>
+
+          {/* 行动区：一键 AI 诊断 + IC 发言 */}
+          <h3 className="mt-4 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">行动</h3>
+          <div className="mt-2 space-y-2">
+            <button
+              onClick={() => diagnose.mutate()}
+              disabled={diagnose.isPending}
+              className="w-full rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-500 disabled:cursor-wait disabled:opacity-60"
+            >
+              {diagnose.isPending ? 'AI 诊断中（GLM-5.2 分析真实日志…）' : '🤖 触发 AI 诊断（headless-diagnoser 进场）'}
+            </button>
+            {lastDiag && <p className="text-[9px] leading-snug text-zinc-500">{lastDiag}</p>}
+            <textarea
+              value={guideText}
+              onChange={(e) => setGuideText(e.target.value)}
+              placeholder="给全部 agent 的指示（IC 发言）…"
+              rows={2}
+              className="w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-2.5 py-2 text-xs text-zinc-200 placeholder:text-zinc-600 focus:border-emerald-500 focus:outline-none"
+            />
+            <button
+              onClick={() => guideText.trim() && postGuidance.mutate(guideText.trim())}
+              disabled={!guideText.trim() || postGuidance.isPending}
+              className="w-full rounded-lg border border-violet-500/50 bg-violet-500/10 px-3 py-1.5 text-xs font-medium text-violet-300 transition-colors hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              发布 IC 指示
+            </button>
+          </div>
 
           <h3 className="mt-4 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">IC 发言</h3>
           <ul className="mt-2 space-y-2">
