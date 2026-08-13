@@ -80,7 +80,8 @@ type SeverityT = Incident['severity'];
 type BackendWorkNode = {
   id: string; question: string; scope?: string; expected_evidence?: string[];
   cost?: number; deadline?: string | null; assignee?: string; role?: string;
-  status?: string; lease_id?: string; source?: string; timestamp?: string;
+  status?: string; lease_id?: string; depends_on?: string[];
+  source?: string; timestamp?: string;
 };
 
 function normWorkNode(b: BackendWorkNode, incidentId: ID): WorkNode {
@@ -101,7 +102,7 @@ function normWorkNode(b: BackendWorkNode, incidentId: ID): WorkNode {
     role: (b.role as WorkNode['role']) ?? 'explorer',
     status: (b.status ? statusMap[b.status] : undefined) ?? 'pending',
     lease_id: b.lease_id ?? null,
-    depends_on: [],
+    depends_on: b.depends_on ?? [],
     proof_trace: b.source ?? 'backend',
     created_at: ts,
     updated_at: ts,

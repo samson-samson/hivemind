@@ -138,6 +138,7 @@ func (s *Service) handleCreateWorkNode(w http.ResponseWriter, r *http.Request) {
 		Deadline:         req.Deadline,
 		Assignee:         req.Assignee,
 		Role:             req.Role,
+		DependsOn:        req.DependsOn,
 		Status:           iam.WorkNodeOpen,
 	}
 	if err := s.store.AddWorkNode(r.Context(), incidentID, wn); err != nil {

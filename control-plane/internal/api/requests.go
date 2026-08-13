@@ -28,6 +28,7 @@ type createWorkNodeRequest struct {
 	Deadline         *time.Time   `json:"deadline,omitempty"`
 	Assignee         string       `json:"assignee,omitempty"`
 	Role             iam.WorkRole `json:"role"`
+	DependsOn        []string     `json:"depends_on,omitempty"` // 依赖的工作单元（工作图 DAG 边）
 	Source           string       `json:"source,omitempty"`
 }
 

@@ -164,6 +164,7 @@ type WorkNode struct {
 	Role             WorkRole       `json:"role"`                        // 角色
 	Status           WorkNodeStatus `json:"status"`                      // 状态
 	LeaseID          string         `json:"lease_id,omitempty"`          // 咨询性租约
+	DependsOn        []string       `json:"depends_on,omitempty"`        // 依赖的工作单元（工作图 DAG 边）
 }
 
 // Operation 一次查询/操作登记。去重状态见 DedupStatus。
