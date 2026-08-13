@@ -130,6 +130,9 @@ func (s *Service) Handler() http.Handler {
 	// AI 诊断（触发 headless-diagnoser 进场）
 	mux.HandleFunc("POST /api/v1/incidents/{id}/diagnose", s.handleDiagnose)
 
+	// 告警接入（自动开独立会议室，同指纹合并）
+	mux.HandleFunc("POST /api/v1/ingest/alert", s.handleIngestAlert)
+
 	// Health
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})

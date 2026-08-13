@@ -2,6 +2,7 @@ package iam
 
 import (
 	"context"
+	"errors"
 	"sort"
 	"sync"
 )
@@ -16,6 +17,8 @@ type Store interface {
 	CreateIncident(ctx context.Context, inc *Incident) error
 	ListIncidents(ctx context.Context) ([]*Incident, error)
 	GetIncident(ctx context.Context, id string) (*Incident, error)
+	// GetIncidentByFingerprint 按事故指纹查找（告警聚合：同指纹归入同一事故/会议室）。
+	GetIncidentByFingerprint(ctx context.Context, fingerprint string) (*Incident, error)
 	UpdateIncident(ctx context.Context, inc *Incident) error
 
 	// ---- WorkNode ----
@@ -134,6 +137,22 @@ func (m *MemoryStore) ListIncidents(_ context.Context) ([]*Incident, error) {
 		return out[i].Timestamp.After(out[j].Timestamp)
 	})
 	return out, nil
+}
+
+// GetIncidentByFingerprint 扫描内存表按指纹查找（事故量级小，线性扫描可接受；
+// PG 化后改为唯一索引查询）。
+func (m *MemoryStore) GetIncidentByFingerprint(_ context.Context, fingerprint string) (*Incident, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if fingerprint == "" {
+		return nil, errors.New("fingerprint is empty")
+	}
+	for _, inc := range m.incidents {
+		if inc.Fingerprint == fingerprint {
+			return inc, nil
+		}
+	}
+	return nil, errors.New("incident not found by fingerprint")
 }
 
 func (m *MemoryStore) GetIncident(_ context.Context, id string) (*Incident, error) {
