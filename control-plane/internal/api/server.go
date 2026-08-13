@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -95,14 +97,17 @@ func (s *Service) Handler() http.Handler {
 	// Work graph
 	mux.HandleFunc("POST /api/v1/incidents/{id}/work-nodes", s.handleCreateWorkNode)
 	mux.HandleFunc("GET /api/v1/incidents/{id}/work-nodes", s.handleListWorkNodes)
+	mux.HandleFunc("PATCH /api/v1/incidents/{id}/work-nodes/{nid}", s.handleUpdateWorkNode)
 
 	// Advisory lease
 	mux.HandleFunc("POST /api/v1/incidents/{id}/leases", s.handleCreateLease)
+	mux.HandleFunc("GET /api/v1/incidents/{id}/leases", s.handleListLeases)
 	mux.HandleFunc("POST /api/v1/incidents/{id}/leases/{lid}/heartbeat", s.handleLeaseHeartbeat)
 	mux.HandleFunc("DELETE /api/v1/incidents/{id}/leases/{lid}", s.handleReleaseLease)
 
 	// Operations (single-flight)
 	mux.HandleFunc("POST /api/v1/incidents/{id}/operations", s.handleRegisterOperation)
+	mux.HandleFunc("GET /api/v1/incidents/{id}/operations", s.handleListOperations)
 
 	// Evidence
 	mux.HandleFunc("POST /api/v1/incidents/{id}/evidence", s.handlePushEvidence)
@@ -110,10 +115,13 @@ func (s *Service) Handler() http.Handler {
 
 	// Facts / Hypotheses（补充入口，喂 stats）
 	mux.HandleFunc("POST /api/v1/incidents/{id}/facts", s.handlePostFact)
+	mux.HandleFunc("GET /api/v1/incidents/{id}/facts", s.handleListFacts)
 	mux.HandleFunc("POST /api/v1/incidents/{id}/hypotheses", s.handlePostHypothesis)
+	mux.HandleFunc("GET /api/v1/incidents/{id}/hypotheses", s.handleListHypotheses)
 
 	// Guidance（IC 发言）
 	mux.HandleFunc("POST /api/v1/incidents/{id}/guidance", s.handlePostGuidance)
+	mux.HandleFunc("GET /api/v1/incidents/{id}/guidance", s.handleListGuidance)
 
 	// Stats / Events
 	mux.HandleFunc("GET /api/v1/incidents/{id}/stats", s.handleGetStats)
@@ -124,7 +132,32 @@ func (s *Service) Handler() http.Handler {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 
-	return logMiddleware(mux)
+	return corsMiddleware(logMiddleware(mux))
+}
+
+// corsMiddleware 开发期跨域放行。生产由网关/同域部署处理，白名单可用
+// OPSHIVE_CORS_ORIGINS 逗号分隔覆盖（默认 localhost:5173 即 Vite dev）。
+func corsMiddleware(next http.Handler) http.Handler {
+	allowed := map[string]bool{"http://localhost:5173": true}
+	for _, o := range strings.Split(os.Getenv("OPSHIVE_CORS_ORIGINS"), ",") {
+		if o = strings.TrimSpace(o); o != "" {
+			allowed[o] = true
+		}
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		if origin != "" && allowed[origin] {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			w.Header().Set("Access-Control-Max-Age", "600")
+		}
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // logMiddleware 简单访问日志。

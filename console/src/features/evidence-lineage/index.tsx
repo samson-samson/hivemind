@@ -162,6 +162,20 @@ export function EvidenceLineageView() {
     let idx = 0;
     const hl = (id: string) => highlightRef === id;
 
+    // 容错：只连真实存在的节点，悬空 id（如空引用）会被丢弃，
+    // 防止 dagre 布局拿到 source/target 不存在的边而崩溃。
+    const knownIds = new Set<string>();
+    const track = (id?: string | null) => {
+      if (id) knownIds.add(id);
+    };
+    (operations ?? []).forEach((op) => track(op.id));
+    (evidence ?? []).forEach((ev) => track(ev.id));
+    (facts ?? []).forEach((f) => track(f.id));
+    (hypotheses ?? []).forEach((h) => track(h.id));
+    const pushEdge = (e: Omit<Edge, 'source' | 'target'> & { source: string; target: string }) => {
+      if (knownIds.has(e.source) && knownIds.has(e.target)) edges.push(e);
+    };
+
     for (const op of operations ?? []) {
       nodes.push({
         id: op.id,
@@ -177,9 +191,9 @@ export function EvidenceLineageView() {
         position: { x: 0, y: 0 },
         data: { kind: 'ev', ev, width: 240, height: 78, idx: idx++, highlight: hl(ev.id) },
       });
-      edges.push({ id: `${ev.operation_id}->${ev.id}`, source: ev.operation_id, target: ev.id });
+      pushEdge({ id: `${ev.operation_id}->${ev.id}`, source: ev.operation_id, target: ev.id });
       for (const p of ev.parent_ids) {
-        edges.push({
+        pushEdge({
           id: `${p}->${ev.id}`,
           source: p,
           target: ev.id,
@@ -198,7 +212,7 @@ export function EvidenceLineageView() {
         data: { kind: 'fact', fact: f, width: 230, height: 96, idx: idx++, highlight: hl(f.id) },
       });
       for (const evId of f.evidence_ids) {
-        edges.push({
+        pushEdge({
           id: `${evId}->${f.id}`,
           source: evId,
           target: f.id,
@@ -215,7 +229,7 @@ export function EvidenceLineageView() {
         data: { kind: 'hyp', hyp: h, width: 250, height: 110, idx: idx++, highlight: hl(h.id) },
       });
       for (const evId of h.supporting) {
-        edges.push({
+        pushEdge({
           id: `${evId}-supports-${h.id}`,
           source: evId,
           target: h.id,
@@ -226,7 +240,7 @@ export function EvidenceLineageView() {
         });
       }
       for (const evId of h.refuting) {
-        edges.push({
+        pushEdge({
           id: `${evId}-refutes-${h.id}`,
           source: evId,
           target: h.id,

@@ -129,6 +129,20 @@ func (m *Manager) Sweep(_ context.Context, incidentID string) []*Lease {
 	return expired
 }
 
+// List 列出某事故下的全部租约（含已过期/已释放，便于前端展示状态）。
+func (m *Manager) List(_ context.Context, incidentID string) ([]*Lease, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make([]*Lease, 0)
+	for _, l := range m.leases {
+		if l.IncidentID == incidentID {
+			cp := *l
+			out = append(out, &cp)
+		}
+	}
+	return out, nil
+}
+
 // Get 查询租约。
 func (m *Manager) Get(_ context.Context, leaseID string) (*Lease, error) {
 	m.mu.Lock()

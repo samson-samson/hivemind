@@ -134,12 +134,23 @@ type NodeBase struct {
 type Incident struct {
 	NodeBase
 	Fingerprint string         `json:"fingerprint"`         // 事故指纹（跨事故候选召回）
+	Title       string         `json:"title"`               // 事故标题（缺省由症状合成，供前端展示）
+	Severity    Severity       `json:"severity"`            // P1/P2/P3
 	Status      IncidentStatus `json:"status"`              // 状态
 	ICID        string         `json:"ic_id"`               // 人类 Incident Commander
 	TimeRange   TimeRange      `json:"time_range"`          // 时间窗
 	AlertIDs    []string       `json:"alert_ids,omitempty"` // 关联告警 ID
 	SymptomSet  []string       `json:"symptom_set"`         // 症状签名集合
 }
+
+// Severity 事故严重度。
+type Severity string
+
+const (
+	SeverityP1 Severity = "P1"
+	SeverityP2 Severity = "P2"
+	SeverityP3 Severity = "P3"
+)
 
 // WorkNode 一个调查工作单元：question + scope + expected_evidence + cost + deadline。
 type WorkNode struct {

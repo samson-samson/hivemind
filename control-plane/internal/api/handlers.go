@@ -48,6 +48,14 @@ func (s *Service) handleCreateIncident(w http.ResponseWriter, r *http.Request) {
 	if src == "" {
 		src = "api"
 	}
+	title := req.Title
+	if title == "" && len(req.SymptomSet) > 0 {
+		title = req.SymptomSet[0]
+	}
+	sev := req.Severity
+	if sev == "" {
+		sev = iam.SeverityP2
+	}
 
 	inc := &iam.Incident{
 		NodeBase: iam.NodeBase{
@@ -57,6 +65,8 @@ func (s *Service) handleCreateIncident(w http.ResponseWriter, r *http.Request) {
 			Timestamp: now,
 		},
 		Fingerprint: fp,
+		Title:       title,
+		Severity:    sev,
 		Status:      status,
 		ICID:        req.ICID,
 		TimeRange:   req.TimeRange,
@@ -513,4 +523,116 @@ func (s *Service) handleGetStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, snap)
+}
+
+// ---- List endpoints (契约补齐) ----
+
+// handleListLeases 列出事故下的全部租约。
+func (s *Service) handleListLeases(w http.ResponseWriter, r *http.Request) {
+	incidentID := r.PathValue("id")
+	leases, err := s.leases.List(r.Context(), incidentID)
+	if err != nil {
+		mapError(w, err)
+		return
+	}
+	if leases == nil {
+		leases = []*lease.Lease{}
+	}
+	writeJSON(w, http.StatusOK, leases)
+}
+
+// handleListOperations 列出事故下登记的查询操作。
+func (s *Service) handleListOperations(w http.ResponseWriter, r *http.Request) {
+	incidentID := r.PathValue("id")
+	ops, err := s.store.ListOperations(r.Context(), incidentID)
+	if err != nil {
+		mapError(w, err)
+		return
+	}
+	if ops == nil {
+		ops = []*iam.Operation{}
+	}
+	writeJSON(w, http.StatusOK, ops)
+}
+
+// handleListFacts 列出事故下已确认事实。
+func (s *Service) handleListFacts(w http.ResponseWriter, r *http.Request) {
+	incidentID := r.PathValue("id")
+	facts, err := s.store.ListFacts(r.Context(), incidentID)
+	if err != nil {
+		mapError(w, err)
+		return
+	}
+	if facts == nil {
+		facts = []*iam.Fact{}
+	}
+	writeJSON(w, http.StatusOK, facts)
+}
+
+// handleListHypotheses 列出事故下的根因假设。
+func (s *Service) handleListHypotheses(w http.ResponseWriter, r *http.Request) {
+	incidentID := r.PathValue("id")
+	hyps, err := s.store.ListHypotheses(r.Context(), incidentID)
+	if err != nil {
+		mapError(w, err)
+		return
+	}
+	if hyps == nil {
+		hyps = []*iam.Hypothesis{}
+	}
+	writeJSON(w, http.StatusOK, hyps)
+}
+
+// handleListGuidance 列出事故下 IC 的发言/决策。
+func (s *Service) handleListGuidance(w http.ResponseWriter, r *http.Request) {
+	incidentID := r.PathValue("id")
+	guides, err := s.store.ListGuidance(r.Context(), incidentID)
+	if err != nil {
+		mapError(w, err)
+		return
+	}
+	if guides == nil {
+		guides = []*iam.Guidance{}
+	}
+	writeJSON(w, http.StatusOK, guides)
+}
+
+// handleUpdateWorkNode 调整一个工作单元（PATCH：IC 改 question/scope/成本/负责人/状态）。
+func (s *Service) handleUpdateWorkNode(w http.ResponseWriter, r *http.Request) {
+	incidentID := r.PathValue("id")
+	nodeID := r.PathValue("nid")
+	wn, err := s.store.GetWorkNode(r.Context(), incidentID, nodeID)
+	if err != nil {
+		mapError(w, err)
+		return
+	}
+	var patch map[string]any
+	if err := decodeBody(w, r, &patch); err != nil {
+		return
+	}
+	if v, ok := patch["question"].(string); ok {
+		wn.Question = v
+	}
+	if v, ok := patch["scope"].(string); ok {
+		wn.Scope = v
+	}
+	if v, ok := patch["cost"].(float64); ok {
+		wn.Cost = int(v)
+	}
+	if v, ok := patch["assignee"].(string); ok {
+		wn.Assignee = v
+	}
+	if v, ok := patch["role"].(string); ok {
+		wn.Role = iam.WorkRole(v)
+	}
+	if v, ok := patch["status"].(string); ok {
+		wn.Status = iam.WorkNodeStatus(v)
+	}
+	if err := s.store.UpdateWorkNode(r.Context(), incidentID, wn); err != nil {
+		mapError(w, err)
+		return
+	}
+	s.bumpVersion(incidentID)
+	s.bus.Publish(incidentID, "work_node.updated", wn)
+	writeJSON(w, http.StatusOK, wn)
 }

@@ -12,7 +12,7 @@ export function IncidentSidebar({ activeId }: { activeId: string }) {
         <div className="text-sm font-bold tracking-wide text-zinc-100">
           OpsHive <span className="text-emerald-400">指挥室</span>
         </div>
-        <div className="mt-0.5 text-[10px] text-zinc-500">P0 · 只读协同账本 · MOCK 数据</div>
+        <div className="mt-0.5 text-[10px] text-zinc-500">P0 · 只读协同账本</div>
       </div>
       <div className="px-3 pt-3 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
         活跃事故（{incidents?.length ?? 0}）

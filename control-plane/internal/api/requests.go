@@ -10,6 +10,8 @@ import (
 
 type createIncidentRequest struct {
 	Fingerprint string             `json:"fingerprint,omitempty"` // 缺省按 symptom_set 生成
+	Title       string             `json:"title,omitempty"`       // 缺省由 symptom_set 合成
+	Severity    iam.Severity       `json:"severity,omitempty"`    // P1/P2/P3，缺省 P2
 	Status      iam.IncidentStatus `json:"status,omitempty"`
 	ICID        string             `json:"ic_id"`
 	TimeRange   iam.TimeRange      `json:"time_range"`
