@@ -53,7 +53,7 @@ function WorkGraphCol({ incidentId }: { incidentId: string }) {
             <div className="wg-meta">
               <span className="agent">{n.assignee ?? byHolder.get(n.id) ?? '待认领'}</span>
               <span className="role">{n.role.toUpperCase()}</span>
-              {n.role === 'skeptic' && n.status === 'pending' && <span style={{ color: 'var(--warn)' }}>自动生成</span>}
+              {n.role === 'skeptic' && n.status === 'pending' && <span className="auto-tag">自动生成</span>}
               <span className="budget">cost {n.cost}</span>
               {n.lease_id && <span className="lease">租约 {n.lease_id.slice(0, 8)}</span>}
               <span className="status">{n.status}</span>
@@ -116,19 +116,19 @@ function FactLedger({ incidentId }: { incidentId: string }) {
         </div>
       ))}
       {(facts ?? []).length === 0 && (evidence ?? []).length === 0 && (
-        <div className="ledger-card" style={{ marginTop: 12 }}><div className="ledger-body" style={{ color: 'var(--text-3)' }}>账本为空 — agent 提交证据后此处实时生长</div></div>
+        <div className="empty-ledger">账本为空 — agent 提交证据后此处实时生长</div>
       )}
 
       {conflicts.length > 0 && (
         <div className="conflict-box">
-          <span className="h">◆ 开放冲突 {conflicts.length}</span>
+          <span className="h"><span className="signal-mark filled" />开放冲突 {conflicts.length}</span>
           <div style={{ marginTop: 4 }}>{conflicts.map((c) => c.topic.slice(0, 60)).join('；')} — 等待反证或进入仲裁</div>
         </div>
       )}
 
       {(openGaps.length > 0 || unclaimed.length > 0) && (
         <div className="gap-box">
-          <span className="h">◇ 未知项 / 盲区</span>
+          <span className="h"><span className="signal-mark" />未知项 / 盲区</span>
           <ul>
             {unclaimed.map((n) => <li key={n.id}>未认领：{n.question.slice(0, 40)}</li>)}
             {openGaps.map((h) => <li key={h.id}>无证据假设：{h.topic.slice(0, 40)}</li>)}
@@ -138,7 +138,7 @@ function FactLedger({ incidentId }: { incidentId: string }) {
 
       {nextAction && (
         <div className="next-action">
-          <div className="h">▶ 下一最佳调查动作</div>
+          <div className="h"><span className="signal-mark filled" />下一最佳调查动作</div>
           {nextAction.kind === 'node' ? (
             <><div className="v">{nextAction.question}</div><div className="who">建议认领 · {nextAction.role}</div></>
           ) : (
@@ -153,6 +153,7 @@ function FactLedger({ incidentId }: { incidentId: string }) {
 function HypothesisMatrix({ incidentId, onArbitrate }: { incidentId: string; onArbitrate: (h: Hypothesis) => void }) {
   const { data: hypotheses } = useQuery({ queryKey: ['hypotheses', incidentId], queryFn: () => api.listHypotheses(incidentId) });
   return (
+    <div className="hyp-table-wrap">
     <table className="hyp-matrix">
       <thead>
         <tr><th>假设</th><th>独立证据域</th><th>反证</th><th>可证伪预测</th></tr>
@@ -166,7 +167,13 @@ function HypothesisMatrix({ incidentId, onArbitrate }: { incidentId: string; onA
               <td>
                 <span className={st.cls}>{st.label}</span>
                 <span className="hs-name">{h.topic}</span>
-                <div className="weak">置信 {fmtPct(h.confidence)} · {h.proposed_by} · {fmtTime(h.updated_at)}</div>
+                <div className="confidence-row weak">
+                  <span>置信 {fmtPct(h.confidence)}</span>
+                  <span className="confidence-track" aria-hidden="true">
+                    <span className="confidence-fill" style={{ width: `${Math.max(0, Math.min(100, h.confidence * 100))}%` }} />
+                  </span>
+                </div>
+                <div className="weak">{h.proposed_by} · {fmtTime(h.updated_at)}</div>
               </td>
               <td><span className="lineage-tag">{h.independence_weight > 0.6 ? '2-3 lineage' : h.independence_weight > 0.3 ? '1-2 lineage' : '1 lineage'}</span></td>
               <td className="weak">{h.refuting.length}{conflicted ? `（agent-c 反证中）` : ''}</td>
@@ -179,6 +186,7 @@ function HypothesisMatrix({ incidentId, onArbitrate }: { incidentId: string; onA
         )}
       </tbody>
     </table>
+    </div>
   );
 }
 
@@ -243,7 +251,7 @@ export function MeetingRoom() {
         <div className="kv"><span className="k">决策延迟</span><span className="v mono">{stats?.decision_latency_min ?? 0}m</span></div>
         <div className="kv"><span className="k">去重</span><span className="v mono">{fmtPct(stats?.dedup_rate ?? 0)}</span></div>
         <div className="kv" title="经验库：相似事故/候选 runbook（P1 开放检索）">
-          <span className="k">📚 经验命中</span>
+          <span className="k">经验命中</span>
           <span className="v mono">{(knowledge ?? []).length}</span>
         </div>
         <div className="ctx-meta">
@@ -286,7 +294,7 @@ export function MeetingRoom() {
               disabled={diagnose.isPending}
               onClick={() => diagnose.mutate()}
             >
-              {diagnose.isPending ? 'AI 诊断中（GLM-5.2 分析真实日志…）' : '🤖 触发 AI 诊断（headless-diagnoser 进场）'}
+              {diagnose.isPending ? 'AI 诊断中（GLM-5.2 分析真实日志…）' : '触发 AI 诊断（headless-diagnoser 进场）'}
             </button>
             <div className="permission-strip">
               <span className="perm ro">资源只读</span>
@@ -303,7 +311,7 @@ export function MeetingRoom() {
         <span className="stat">协作纪要 <b>{flowCount}</b> 条</span>
         <span className="stat">去重查询 <b className="sky">{dedupCount}</b></span>
         <span className="stat">事实 <b className="ok">{stats?.facts_confirmed ?? 0}</b> / 未解 <b className="warn">{stats?.open_questions ?? 0}</b></span>
-        <span className="toggle">展开 ▴</span>
+        <span className="toggle">展开 ↑</span>
       </div>
     </div>
   );
