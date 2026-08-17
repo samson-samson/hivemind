@@ -39,3 +39,6 @@ console/.vite/
 *.png
 *.jpg
 *.jpeg
+
+# claude runtime
+.claude/
