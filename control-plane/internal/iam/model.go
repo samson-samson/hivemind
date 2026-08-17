@@ -158,6 +158,7 @@ const (
 // WorkNode 一个调查工作单元：question + scope + expected_evidence + cost + deadline。
 type WorkNode struct {
 	NodeBase
+	IncidentID string `json:"incident_id,omitempty"` // 归属事故（跨事故隔离）
 	Question         string         `json:"question"`                    // 要回答的问题
 	Scope            string         `json:"scope"`                       // 调查范围
 	ExpectedEvidence []string       `json:"expected_evidence,omitempty"` // 预期证据
@@ -173,6 +174,7 @@ type WorkNode struct {
 // Operation 一次查询/操作登记。去重状态见 DedupStatus。
 type Operation struct {
 	NodeBase
+	IncidentID string `json:"incident_id,omitempty"` // 归属事故（跨事故隔离）
 	Fingerprint  string      `json:"fingerprint"`            // 操作指纹（querycoord 生成）
 	Query        QuerySpec   `json:"query"`                  // 规范化查询（供指纹生成与复用判断）
 	RegisteredAt time.Time   `json:"registered_at"`          // 登记时间

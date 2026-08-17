@@ -183,6 +183,7 @@ func (m *MemoryStore) AddWorkNode(_ context.Context, incidentID string, wn *Work
 	if err := m.requireIncident(incidentID); err != nil {
 		return err
 	}
+	wn.IncidentID = incidentID // 记录归属（跨事故隔离）
 	m.workNodes[wn.ID] = wn
 	appendIndex(m.incWorkNodes, incidentID, wn.ID)
 	return nil
@@ -206,7 +207,10 @@ func (m *MemoryStore) GetWorkNode(_ context.Context, incidentID, id string) (*Wo
 	if !ok {
 		return nil, &NotFoundError{Kind: "work_node", ID: id}
 	}
-	return wn, nil
+	if wn.IncidentID != "" && wn.IncidentID != incidentID {
+		return nil, &NotFoundError{Kind: "work_node", ID: id} // 跨事故隔离
+	}
+	return wn.Clone(), nil // 深拷贝：锁外修改不产生数据竞争
 }
 
 func (m *MemoryStore) UpdateWorkNode(_ context.Context, incidentID string, wn *WorkNode) error {
@@ -227,6 +231,7 @@ func (m *MemoryStore) AddOperation(_ context.Context, incidentID string, op *Ope
 	if err := m.requireIncident(incidentID); err != nil {
 		return err
 	}
+	op.IncidentID = incidentID // 记录归属（跨事故隔离）
 	m.operations[op.ID] = op
 	appendIndex(m.incOperations, incidentID, op.ID)
 	return nil
@@ -250,7 +255,10 @@ func (m *MemoryStore) GetOperation(_ context.Context, incidentID, id string) (*O
 	if !ok {
 		return nil, &NotFoundError{Kind: "operation", ID: id}
 	}
-	return op, nil
+	if op.IncidentID != "" && op.IncidentID != incidentID {
+		return nil, &NotFoundError{Kind: "operation", ID: id} // 跨事故隔离
+	}
+	return op.Clone(), nil
 }
 
 // ---- Evidence ----

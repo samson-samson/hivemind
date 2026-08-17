@@ -8,6 +8,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -17,9 +18,13 @@ import (
 
 // handleDiagnose POST /api/v1/incidents/{id}/diagnose
 // 触发一次 LLM 智能诊断（最长 3 分钟）。只读分析 + 写假设节点。
+//
+// 关键修复：诊断目标 = 被触发的事故本身（按该事故的 title/symptom
+// 过滤采集），而不是 SLS 最新事故（避免"串房"误导决策）。
 func (s *Service) handleDiagnose(w http.ResponseWriter, r *http.Request) {
 	incidentID := r.PathValue("id")
-	if _, err := s.store.GetIncident(r.Context(), incidentID); err != nil {
+	inc, err := s.store.GetIncident(r.Context(), incidentID)
+	if err != nil {
 		mapError(w, err)
 		return
 	}
@@ -28,12 +33,25 @@ func (s *Service) handleDiagnose(w http.ResponseWriter, r *http.Request) {
 	if script == "" {
 		script = "../headless-agent/diagnose.py"
 	}
-	cpBase := "http://" + r.Host
+	// cp-base 用可信配置（拒绝用不可信 Host 头构造，防回连）。
+	cpBase := os.Getenv("OPSHIVE_PUBLIC_BASE")
+	if cpBase == "" {
+		cpBase = "http://localhost:8081"
+	}
+
+	// 把被触发事故的语义传给 Python：诊断按其 title/症状过滤采集。
+	incidentJSON, _ := json.Marshal(map[string]any{
+		"title":       inc.Title,
+		"symptom_set": inc.SymptomSet,
+		"id":          inc.ID,
+		"fingerprint": inc.Fingerprint,
+	})
 
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Minute)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "python3", script,
-		"--index", "0", "--push", incidentID, "--cp-base", cpBase)
+		"--push", incidentID, "--cp-base", cpBase,
+		"--incident-json", string(incidentJSON))
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		writeError(w, http.StatusBadGateway,
@@ -41,8 +59,9 @@ func (s *Service) handleDiagnose(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"ok":     true,
-		"script": script,
-		"tail":   string(out)[:min(len(out), 1500)],
+		"ok":       true,
+		"script":   script,
+		"incident": incidentID,
+		"tail":     string(out)[:min(len(out), 1500)],
 	})
 }

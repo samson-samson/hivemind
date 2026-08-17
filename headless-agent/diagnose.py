@@ -94,6 +94,7 @@ def main() -> int:
     ap.add_argument("--push", metavar="INCIDENT_ID", default="", help="把诊断假设写入控制平面事故（会议室可见）")
     ap.add_argument("--cp-base", default="http://localhost:8081", help="控制平面 base URL")
     ap.add_argument("--alert", metavar="ALARM_NAME", default="", help="从指定告警（alertmanager-alarm-event）出发诊断")
+    ap.add_argument("--incident-json", default="", help="被触发事故的 JSON（title/symptom_set），用于过滤采集，避免串房")
     args = ap.parse_args()
 
     print(f"[1/3] 读取最近事故（{args.hours}h 窗口）…", file=sys.stderr)
@@ -108,7 +109,34 @@ def main() -> int:
     if args.list:
         return 0
 
-    if args.alert:
+    # 诊断目标：优先取被触发事故（incident-json），其次按告警名。
+    incident_meta = None
+    if args.incident_json:
+        try:
+            incident_meta = json.loads(args.incident_json)
+        except json.JSONDecodeError:
+            incident_meta = None
+
+    if incident_meta:
+        # 串房修复：按被触发事故的 title/症状关键词过滤告警采集，
+        # 而不是"SLS 最新事故"。
+        print(f"[2/3] 采集事故上下文（{incident_meta.get('id', '?')}：{str(incident_meta.get('title', ''))[:50]}）…", file=sys.stderr)
+        title = str(incident_meta.get("title", ""))
+        symptoms = incident_meta.get("symptom_set", [])
+        keywords = [title] + [str(s)[:30] for s in symptoms]
+        all_alerts = sls_reader.list_alerts(hours=max(24, args.hours), line=30)
+        matches = [a for a in all_alerts
+                   if any(k and k.lower() in str(a.get("alarm", {}).get("alarmName", "")).lower()
+                          or k and k.lower() in str(a.get("alarm", {}).get("describe", "")).lower() for k in keywords if k)]
+        ctx = {
+            "incident": {"id": incident_meta.get("id"), "title": title,
+                         "symptom_set": symptoms, "fingerprint": incident_meta.get("fingerprint")},
+            "related_alerts": [m.get("alarm", {}) for m in matches[-3:]],
+            "gateway_errors": [l.summary for l in sls_reader.app_logs("gateway", hours=24, query="error", line=5)],
+        }
+        ctx["incident_time"] = "incident-triggered"
+        source_label = incident_meta.get("id", title)
+    elif args.alert:
         # 从告警事件出发：按告警名取上下文（dev 环境真实故障告警）
         print(f"[2/3] 采集告警上下文（{args.alert}）…", file=sys.stderr)
         matches = [a for a in sls_reader.list_alerts(hours=max(24, args.hours), line=20)

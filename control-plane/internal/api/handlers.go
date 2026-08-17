@@ -209,9 +209,13 @@ func (s *Service) handleLeaseHeartbeat(w http.ResponseWriter, r *http.Request) {
 		mapError(w, err)
 		return
 	}
-	l, _ := s.leases.Get(r.Context(), lid)
+	l, err := s.leases.Get(r.Context(), lid)
+	if err != nil {
+		mapError(w, err)
+		return
+	}
 	s.bus.Publish(incidentID, "lease.heartbeat", l)
-	writeJSON(w, http.StatusOK, map[string]string{"status": "active"})
+	writeJSON(w, http.StatusOK, l) // 返回完整 Lease（契约修复：前端 normalize 不再拿到 undefined id）
 }
 
 func (s *Service) handleReleaseLease(w http.ResponseWriter, r *http.Request) {
@@ -408,6 +412,12 @@ func (s *Service) handlePostFact(w http.ResponseWriter, r *http.Request) {
 	if confirmedBy == "" {
 		confirmedBy = req.Source
 	}
+	// 证据门控：confirmed 需要证据链闭合；否则为候选事实（不污染指标）。
+	confirmed := req.IsConfirmed != nil && *req.IsConfirmed
+	if confirmed && len(req.EvidenceChain) == 0 {
+		writeError(w, http.StatusBadRequest, "is_confirmed=true requires evidence_chain (证据门控)")
+		return
+	}
 	f := &iam.Fact{
 		NodeBase: iam.NodeBase{
 			ID:        iam.NewID("fact"),
@@ -418,7 +428,7 @@ func (s *Service) handlePostFact(w http.ResponseWriter, r *http.Request) {
 		Statement:     req.Statement,
 		EvidenceChain: req.EvidenceChain,
 		ConfirmedBy:   confirmedBy,
-		IsConfirmed:   true,
+		IsConfirmed:   confirmed,
 	}
 	if err := s.store.AddFact(r.Context(), incidentID, f); err != nil {
 		mapError(w, err)
@@ -654,7 +664,19 @@ func (s *Service) handleUpdateWorkNode(w http.ResponseWriter, r *http.Request) {
 		wn.Role = iam.WorkRole(v)
 	}
 	if v, ok := patch["status"].(string); ok {
-		wn.Status = iam.WorkNodeStatus(v)
+		// 枚举校验：前端发 pending/in_progress，后端收 open/active ——
+		// 用别名映射，拒绝非法值（防"看似成功但状态反跳"）。
+		norm := map[string]iam.WorkNodeStatus{
+			"open": iam.WorkNodeOpen, "pending": iam.WorkNodeOpen,
+			"active": iam.WorkNodeActive, "in_progress": iam.WorkNodeActive,
+			"done": iam.WorkNodeDone, "stale": iam.WorkNodeStale,
+		}
+		st, ok := norm[v]
+		if !ok {
+			writeError(w, http.StatusBadRequest, "invalid status: "+v)
+			return
+		}
+		wn.Status = st
 	}
 	if err := s.store.UpdateWorkNode(r.Context(), incidentID, wn); err != nil {
 		mapError(w, err)

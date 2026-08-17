@@ -66,7 +66,10 @@ type postFactRequest struct {
 	Statement     string   `json:"statement"`
 	EvidenceChain []string `json:"evidence_chain,omitempty"`
 	ConfirmedBy   string   `json:"confirmed_by,omitempty"`
-	Source        string   `json:"source,omitempty"`
+	// IsConfirmed 证据门控（§5.4/§8）：空证据链不得自动 confirmed——
+	// 默认 false（候选事实），仅带证据链或 IC 确认才为 true。
+	IsConfirmed *bool  `json:"is_confirmed,omitempty"`
+	Source      string `json:"source,omitempty"`
 }
 
 type postHypothesisRequest struct {
