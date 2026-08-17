@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { SEVERITY_STYLE, STATUS_COLOR, STATUS_LABEL, fmtPct } from '../lib/format';
@@ -54,6 +55,25 @@ function Stat({ label, value, tone }: { label: string; value: string; tone: stri
   );
 }
 
+function ThemeToggle() {
+  const [theme, setTheme] = useState<'dark' | 'light'>(() =>
+    (localStorage.getItem('hivemind-theme') as 'dark' | 'light') ?? 'dark',
+  );
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('hivemind-theme', theme);
+  }, [theme]);
+  return (
+    <button
+      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      title="切换深浅主题"
+      className="rounded border border-zinc-700 px-2 py-1 font-mono text-[10px] text-zinc-400 hover:bg-zinc-800"
+    >
+      {theme === 'dark' ? '◐ 浅色' : '◐ 深色'}
+    </button>
+  );
+}
+
 export function ConsoleLayout() {
   const { incidentId = '' } = useParams();
   const { data: incident } = useQuery({
@@ -101,6 +121,7 @@ export function ConsoleLayout() {
             </nav>
           </div>
           <Flywheel incidentId={incidentId} />
+          <ThemeToggle />
         </header>
         <main className="min-h-0 flex-1 overflow-y-auto">
           <Outlet />

@@ -191,6 +191,12 @@ export function MeetingRoom() {
   const { data: incident } = useQuery({ queryKey: ['incident', incidentId], queryFn: () => api.getIncident(incidentId), ...REFRESH });
   const { data: stats } = useQuery({ queryKey: ['stats', incidentId], queryFn: () => api.getStats(incidentId), ...REFRESH });
   const { data: events } = useQuery({ queryKey: ['events', incidentId], queryFn: () => api.listEvents(incidentId), ...REFRESH });
+  // 经验库：相似事故/候选 runbook 命中（P1 提供检索，P0 占位）
+  const { data: knowledge } = useQuery({
+    queryKey: ['knowledge', incidentId],
+    queryFn: () => api.listKnowledge(incidentId),
+    ...REFRESH,
+  });
 
   const [guideText, setGuideText] = useState('');
   const [guideType, setGuideType] = useState('guidance');
@@ -236,6 +242,10 @@ export function MeetingRoom() {
         <div className="kv"><span className="k">止血</span><span className="v warn">无 · 需 IC 决策</span></div>
         <div className="kv"><span className="k">决策延迟</span><span className="v mono">{stats?.decision_latency_min ?? 0}m</span></div>
         <div className="kv"><span className="k">去重</span><span className="v mono">{fmtPct(stats?.dedup_rate ?? 0)}</span></div>
+        <div className="kv" title="经验库：相似事故/候选 runbook（P1 开放检索）">
+          <span className="k">📚 经验命中</span>
+          <span className="v mono">{(knowledge ?? []).length}</span>
+        </div>
         <div className="ctx-meta">
           <span>ctx@{events?.length ?? 0}</span>
           <span>{incidentId.slice(0, 14)}</span>

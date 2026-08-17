@@ -15,6 +15,12 @@ const queryClient = new QueryClient({
   },
 });
 
+// 应用已存主题（默认深色）
+try {
+  const t = localStorage.getItem('hivemind-theme');
+  document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
+} catch { /* ignore */ }
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
