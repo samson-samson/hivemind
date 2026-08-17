@@ -2,292 +2,298 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { api } from '../../lib/api';
-import type { IncidentEvent } from '../../lib/api';
-import { GUIDANCE_STYLE, HYP_STATUS, fmtTime } from '../../lib/format';
+import type { Hypothesis } from '../../lib/api';
+import { fmtTime, fmtPct } from '../../lib/format';
 
 /**
- * 会议室 —— 一个事故一间会议室，所有 agent 的协同诊断汇聚一屏：
- *   顶部事故条（状态 + 上下文飞轮）
- *   左栏 agent 状态（谁在线、什么角色、在查什么、租约状态）
- *   中间协同诊断流（证据/事实/假设/IC 发言按时间合并，像会议纪要）
- *   右栏假设面板（带置信度与冲突标记）
- * 设计原则：聊天不进事实层——流里每一条都是结构化产出，不是闲聊。
+ * 指挥室（v3）—— 一个故障一间会议室，按"指挥界面"而非"活动流"组织：
+ *
+ *   顶部：影响 / 止血状态 / 仲裁倒计时 / 上下文版本
+ *   左：  工作图（agent 是工作节点属性，不是独立名单）
+ *   中：  事实账本（证据/事实泳道）+ 盲区 + 冲突 + 下一最佳动作
+ *   右：  假设对比矩阵（状态/独立证据域/反证/可证伪预测）+
+ *         IC 决策队列（类型化）+ 权限三级条
+ *   底部：活动流抽屉（审计信息，降级）
+ *
+ * 设计依据：docs/design/hivemind-command-room.html（v3 样式图）。
+ * 规则：AI 只定位，IC 决策；聊天不进事实层；置信度是弱元数据。
  */
-function eventActor(e: IncidentEvent): { name: string; kind: string } {
-  if (e.type === 'guidance.posted') return { name: e.actor, kind: 'ic' };
-  if (e.type === 'fact.posted') return { name: e.actor, kind: 'fact' };
-  if (e.type === 'work_node.created') return { name: e.actor, kind: 'agent' };
-  return { name: e.actor, kind: 'agent' };
-}
 
-function EventCard({ e }: { e: IncidentEvent }) {
-  const { name, kind } = eventActor(e);
-  const style: Record<string, { chip: string; dot: string }> = {
-    ic: { chip: 'bg-violet-500/20 text-violet-300', dot: 'bg-violet-400' },
-    fact: { chip: 'bg-emerald-500/20 text-emerald-300', dot: 'bg-emerald-400' },
-    agent: { chip: 'bg-sky-500/20 text-sky-300', dot: 'bg-sky-400' },
-  };
-  const st = style[kind] ?? style.agent;
-  const label: Record<string, string> = {
-    'guidance.posted': 'IC 指示',
-    'fact.posted': '事实确认',
-    'evidence.appended': '提交证据',
-    'hypothesis.posted': '提出假设',
-    'work_node.created': '领取任务',
-    'work_node.updated': '更新任务',
-    'operation.registered': '发起查询',
-    'lease.claimed': '认领租约',
-    'lease.released': '释放租约',
-    'incident.created': '事故创建',
-  };
+const HYP_STATE: Record<string, { label: string; cls: string }> = {
+  open: { label: 'PROPOSED', cls: 'hs prop' },
+  strengthening: { label: 'SUPPORTED', cls: 'hs sup' },
+  weakening: { label: 'CONFLICTED', cls: 'hs conf' },
+  refuted: { label: 'REFUTED', cls: 'hs ref' },
+  confirmed: { label: 'FROZEN', cls: 'hs frz' },
+};
+
+function WorkGraphCol({ incidentId }: { incidentId: string }) {
+  const { data: nodes } = useQuery({
+    queryKey: ['work-nodes', incidentId],
+    queryFn: () => api.listWorkNodes(incidentId),
+  });
+  const { data: leases } = useQuery({
+    queryKey: ['leases', incidentId],
+    queryFn: () => api.listLeases(incidentId),
+  });
+  // agent 是节点属性：租约 holder → 节点 assignee
+  const byHolder = new Map<string, string>();
+  for (const l of leases ?? []) byHolder.set(l.work_node_id, l.holder);
 
   return (
-    <li className="flex gap-3">
-      <div className="flex flex-col items-center">
-        <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${st.dot}`} />
-        <span className="mt-1 w-px flex-1 bg-zinc-800" />
-      </div>
-      <div className="mb-4 min-w-0 flex-1 rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${st.chip}`}>{label[e.type] ?? e.type}</span>
-          <span className="text-[11px] font-medium text-zinc-200">{name}</span>
-          <span className="ml-auto font-mono text-[10px] text-zinc-500">{fmtTime(e.at)}</span>
+    <div className="col col-left">
+      <div className="col-label">工作图 <span className="count">· {(nodes ?? []).filter((n) => n.status === 'done').length}/{(nodes ?? []).length}</span></div>
+      {(nodes ?? []).map((n, i) => (
+        <div key={n.id}>
+          {i > 0 && <div className="wg-edge" />}
+          <div
+            className={`wg-node ${n.status === 'done' ? 'done' : ''} ${n.status === 'in_progress' ? 'active' : ''} ${n.role === 'skeptic' ? 'skeptic' : ''}`}
+          >
+            <div className="wg-q">{n.question}</div>
+            <div className="wg-meta">
+              <span className="agent">{n.assignee ?? byHolder.get(n.id) ?? '待认领'}</span>
+              <span className="role">{n.role.toUpperCase()}</span>
+              {n.role === 'skeptic' && n.status === 'pending' && <span style={{ color: 'var(--warn)' }}>自动生成</span>}
+              <span className="budget">cost {n.cost}</span>
+              {n.lease_id && <span className="lease">租约 {n.lease_id.slice(0, 8)}</span>}
+              <span className="status">{n.status}</span>
+            </div>
+          </div>
         </div>
-        <p className="mt-1.5 text-xs leading-relaxed text-zinc-300">{e.summary}</p>
+      ))}
+      {(nodes ?? []).length === 0 && <div className="wg-add">工作图为空 — IC 可新建工作单元</div>}
+    </div>
+  );
+}
+
+function FactLedger({ incidentId }: { incidentId: string }) {
+  const { data: evidence } = useQuery({ queryKey: ['evidence', incidentId], queryFn: () => api.listEvidence(incidentId) });
+  const { data: facts } = useQuery({ queryKey: ['facts', incidentId], queryFn: () => api.listFacts(incidentId) });
+  const { data: hypotheses } = useQuery({ queryKey: ['hypotheses', incidentId], queryFn: () => api.listHypotheses(incidentId) });
+  const { data: nodes } = useQuery({ queryKey: ['work-nodes', incidentId], queryFn: () => api.listWorkNodes(incidentId) });
+
+  const conflicts = (hypotheses ?? []).filter((h) => h.supporting.length > 0 && h.refuting.length > 0);
+  const openGaps = (hypotheses ?? []).filter((h) => h.status === 'open' && h.supporting.length === 0).slice(0, 3);
+  const unclaimed = (nodes ?? []).filter((n) => n.status === 'pending' && !n.assignee);
+  const topHyp = (hypotheses ?? []).sort((a, b) => b.confidence - a.confidence)[0];
+  const nextAction: { kind: 'node'; question: string; role: string } | { kind: 'hyp'; topic: string; confidence: number } | null =
+    unclaimed[0]
+      ? { kind: 'node', question: unclaimed[0].question, role: unclaimed[0].role }
+      : topHyp
+        ? { kind: 'hyp', topic: topHyp.topic, confidence: topHyp.confidence }
+        : null;
+
+  return (
+    <div className="col col-mid">
+      <div className="col-label">
+        事实账本 <span className="count">· 证据 {(evidence ?? []).length} · 事实 {(facts ?? []).length}</span>
       </div>
-    </li>
+
+      {(facts ?? []).slice(0, 3).map((f) => (
+        <div className="ledger-item" key={f.id}>
+          <div className="ledger-rail"><span className="ledger-dot ok" /></div>
+          <div className="ledger-card fact">
+            <div className="ledger-head">
+              <span className="ledger-tag fact">事实</span>
+              <span className="ledger-src">{f.confirmed_by}</span>
+              <span className="ledger-time">{fmtTime(f.confirmed_at)}</span>
+            </div>
+            <div className="ledger-body">{f.statement} <span className="ref">{f.evidence_ids.length} 证据链</span></div>
+          </div>
+        </div>
+      ))}
+      {(evidence ?? []).slice(0, 3).map((e) => (
+        <div className="ledger-item" key={e.id}>
+          <div className="ledger-rail"><span className="ledger-dot sky" /></div>
+          <div className="ledger-card evidence">
+            <div className="ledger-head">
+              <span className="ledger-tag ev">证据</span>
+              <span className="ledger-src">{e.source} · {e.operation_id.slice(0, 8)}</span>
+              <span className="ledger-time">{fmtTime(e.timestamp)}</span>
+            </div>
+            <div className="ledger-body">{e.summary} · 独立性 <span className="indep">{e.independence_score.toFixed(2)}</span></div>
+          </div>
+        </div>
+      ))}
+      {(facts ?? []).length === 0 && (evidence ?? []).length === 0 && (
+        <div className="ledger-card" style={{ marginTop: 12 }}><div className="ledger-body" style={{ color: 'var(--text-3)' }}>账本为空 — agent 提交证据后此处实时生长</div></div>
+      )}
+
+      {conflicts.length > 0 && (
+        <div className="conflict-box">
+          <span className="h">◆ 开放冲突 {conflicts.length}</span>
+          <div style={{ marginTop: 4 }}>{conflicts.map((c) => c.topic.slice(0, 60)).join('；')} — 等待反证或进入仲裁</div>
+        </div>
+      )}
+
+      {(openGaps.length > 0 || unclaimed.length > 0) && (
+        <div className="gap-box">
+          <span className="h">◇ 未知项 / 盲区</span>
+          <ul>
+            {unclaimed.map((n) => <li key={n.id}>未认领：{n.question.slice(0, 40)}</li>)}
+            {openGaps.map((h) => <li key={h.id}>无证据假设：{h.topic.slice(0, 40)}</li>)}
+          </ul>
+        </div>
+      )}
+
+      {nextAction && (
+        <div className="next-action">
+          <div className="h">▶ 下一最佳调查动作</div>
+          {nextAction.kind === 'node' ? (
+            <><div className="v">{nextAction.question}</div><div className="who">建议认领 · {nextAction.role}</div></>
+          ) : (
+            <><div className="v">验证假设：{nextAction.topic.slice(0, 60)}</div><div className="who">置信 {fmtPct(nextAction.confidence)}</div></>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HypothesisMatrix({ incidentId, onArbitrate }: { incidentId: string; onArbitrate: (h: Hypothesis) => void }) {
+  const { data: hypotheses } = useQuery({ queryKey: ['hypotheses', incidentId], queryFn: () => api.listHypotheses(incidentId) });
+  return (
+    <table className="hyp-matrix">
+      <thead>
+        <tr><th>假设</th><th>独立证据域</th><th>反证</th><th>可证伪预测</th></tr>
+      </thead>
+      <tbody>
+        {(hypotheses ?? []).sort((a, b) => b.confidence - a.confidence).map((h) => {
+          const st = HYP_STATE[h.status] ?? HYP_STATE.open;
+          const conflicted = h.supporting.length > 0 && h.refuting.length > 0;
+          return (
+            <tr key={h.id} className={h.status === 'refuted' ? 'refuted' : conflicted ? 'conflicted' : ''}>
+              <td>
+                <span className={st.cls}>{st.label}</span>
+                <span className="hs-name">{h.topic}</span>
+                <div className="weak">置信 {fmtPct(h.confidence)} · {h.proposed_by} · {fmtTime(h.updated_at)}</div>
+              </td>
+              <td><span className="lineage-tag">{h.independence_weight > 0.6 ? '2-3 lineage' : h.independence_weight > 0.3 ? '1-2 lineage' : '1 lineage'}</span></td>
+              <td className="weak">{h.refuting.length}{conflicted ? `（agent-c 反证中）` : ''}</td>
+              <td className="falsifier">{h.status === 'refuted' ? '—' : <button className="arb-btn" onClick={() => onArbitrate(h)}>仲裁 / 反证</button>}</td>
+            </tr>
+          );
+        })}
+        {(hypotheses ?? []).length === 0 && (
+          <tr><td colSpan={4} className="weak">暂无假设 — 点击"AI 诊断"或等 agent 进场</td></tr>
+        )}
+      </tbody>
+    </table>
   );
 }
 
 export function MeetingRoom() {
   const { incidentId = '' } = useParams();
-
-  // 10s 轮询：让 headless-diagnoser 等 agent 提交的假设/证据实时进会议室。
-  // （SSE 就绪后此处可移除，EventSource 已预留。）
-  const REFRESH = { refetchInterval: 10_000 };
-  const { data: incident } = useQuery({
-    queryKey: ['incident', incidentId],
-    queryFn: () => api.getIncident(incidentId),
-    ...REFRESH,
-  });
-  const { data: stats } = useQuery({
-    queryKey: ['stats', incidentId],
-    queryFn: () => api.getStats(incidentId),
-    ...REFRESH,
-  });
-  const { data: events } = useQuery({
-    queryKey: ['events', incidentId],
-    queryFn: () => api.listEvents(incidentId),
-    ...REFRESH,
-  });
-  const { data: leases } = useQuery({
-    queryKey: ['leases', incidentId],
-    queryFn: () => api.listLeases(incidentId),
-    ...REFRESH,
-  });
-  const { data: hypotheses } = useQuery({
-    queryKey: ['hypotheses', incidentId],
-    queryFn: () => api.listHypotheses(incidentId),
-    ...REFRESH,
-  });
-  const { data: guidance } = useQuery({
-    queryKey: ['guidance', incidentId],
-    queryFn: () => api.listGuidance(incidentId),
-    ...REFRESH,
-  });
-
-  // ---- 行动区（让会议室"用起来"） ----
   const queryClient = useQueryClient();
+
+  // 10s 轮询（SSE 就绪后可换 EventSource）
+  const REFRESH = { refetchInterval: 10_000 };
+  const { data: incident } = useQuery({ queryKey: ['incident', incidentId], queryFn: () => api.getIncident(incidentId), ...REFRESH });
+  const { data: stats } = useQuery({ queryKey: ['stats', incidentId], queryFn: () => api.getStats(incidentId), ...REFRESH });
+  const { data: events } = useQuery({ queryKey: ['events', incidentId], queryFn: () => api.listEvents(incidentId), ...REFRESH });
+
   const [guideText, setGuideText] = useState('');
+  const [guideType, setGuideType] = useState('guidance');
   const [lastDiag, setLastDiag] = useState('');
+
   const diagnose = useMutation({
     mutationFn: () => api.runDiagnose(incidentId),
     onSuccess: () => {
-      setLastDiag('AI 诊断完成：headless-diagnoser 已提交假设（10s 内出现在右侧面板）');
+      setLastDiag('AI 诊断完成：headless-diagnoser 已提交假设');
       queryClient.invalidateQueries({ queryKey: ['hypotheses', incidentId] });
       queryClient.invalidateQueries({ queryKey: ['events', incidentId] });
     },
-    onError: (e: Error) => setLastDiag(`诊断失败：${e.message.slice(0, 80)}`),
+    onError: (e: Error) => setLastDiag(`诊断失败：${e.message.slice(0, 60)}`),
   });
   const postGuidance = useMutation({
-    mutationFn: (text: string) => api.createGuidance(incidentId, { from_ic: incident?.ic_name ?? 'ic', text, priority: 'directive' }),
+    mutationFn: (text: string) =>
+      api.createGuidance(incidentId, {
+        from_ic: incident?.ic_name ?? 'ic',
+        text: guideType !== 'guidance' ? `[${guideType}] ${text}` : text,
+        priority: 'directive',
+      }),
     onSuccess: () => {
       setGuideText('');
       queryClient.invalidateQueries({ queryKey: ['guidance', incidentId] });
       queryClient.invalidateQueries({ queryKey: ['events', incidentId] });
     },
   });
+  const onArbitrate = (h: Hypothesis) => {
+    setGuideType('仲裁裁决');
+    setGuideText(`仲裁假设「${h.topic.slice(0, 40)}」：请说明裁决理由`);
+  };
 
-  const agents = new Map<string, { roles: string[]; leases: string[]; active: boolean }>();
-  for (const l of leases ?? []) {
-    const a = agents.get(l.holder) ?? { roles: [], leases: [], active: false };
-    a.leases.push(l.work_node_id);
-    a.active = a.active || l.status === 'active';
-    agents.set(l.holder, a);
-  }
-
-  const flow = [...(events ?? [])].sort((a, b) => a.at.localeCompare(b.at));
+  const flowCount = events?.length ?? 0;
+  const dedupCount = stats?.duplicates_avoided ?? 0;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* 顶部事故条 */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-zinc-800/70 px-5 py-2.5">
-        <span className="rounded bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-bold text-rose-300">
-          {incident?.severity ?? 'P?'}
-        </span>
-        <h1 className="text-sm font-semibold text-zinc-100">{incident?.title ?? '加载中…'}</h1>
-        <span className="rounded border border-zinc-700 px-1.5 py-0.5 text-[10px] text-zinc-400">
-          {incident?.status ?? '…'}
-        </span>
-        <span className="text-[10px] text-zinc-500">IC：{incident?.ic_name ?? '—'}</span>
-        <span className="ml-auto flex items-center gap-3 text-[10px] text-zinc-400">
-          <span>
-            事实 <span className="font-mono text-emerald-300">{stats?.facts_confirmed ?? 0}</span>
-          </span>
-          <span>
-            未解 <span className="font-mono text-amber-300">{stats?.open_questions ?? 0}</span>
-          </span>
-          <span>
-            去重 <span className="font-mono text-sky-300">{((stats?.dedup_rate ?? 0) * 100).toFixed(0)}%</span>
-          </span>
-          <span>
-            决策延迟 <span className="font-mono text-violet-300">{stats?.decision_latency_min ?? 0}m</span>
-          </span>
-        </span>
+      {/* 顶部：影响 / 止血 / 仲裁 */}
+      <div className="incident-bar">
+        <span className="inc-badge p1">{incident?.severity ?? 'P?'}</span>
+        <span className="inc-title">{incident?.title ?? '加载中…'}</span>
+        <div className="kv"><span className="k">影响</span><span className="v warn">error budget 剩余中</span></div>
+        <div className="kv"><span className="k">止血</span><span className="v warn">无 · 需 IC 决策</span></div>
+        <div className="kv"><span className="k">决策延迟</span><span className="v mono">{stats?.decision_latency_min ?? 0}m</span></div>
+        <div className="kv"><span className="k">去重</span><span className="v mono">{fmtPct(stats?.dedup_rate ?? 0)}</span></div>
+        <div className="ctx-meta">
+          <span>ctx@{events?.length ?? 0}</span>
+          <span>{incidentId.slice(0, 14)}</span>
+        </div>
       </div>
 
-      {/* 三栏主体 */}
-      <div className="grid min-h-0 flex-1 grid-cols-12">
-        {/* 左：agent 状态 */}
-        <aside className="col-span-2 min-w-0 border-r border-zinc-800/70 p-3">
-          <h3 className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">与会 Agent</h3>
-          <ul className="mt-2 space-y-2">
-            {[...agents.entries()].map(([name, a]) => (
-              <li key={name} className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-2">
-                <div className="flex items-center gap-1.5">
-                  <span className={`h-1.5 w-1.5 rounded-full ${a.active ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
-                  <span className="truncate text-[11px] font-medium text-zinc-200">{name}</span>
-                </div>
-                <div className="mt-1 flex flex-wrap gap-1">
-                  {a.roles.length === 0 && (
-                    <span className="rounded bg-zinc-800 px-1 py-0.5 text-[9px] text-zinc-400">role—</span>
-                  )}
-                </div>
-                <div className="mt-1 text-[9px] text-zinc-500">
-                  {a.active ? `在查 ${a.leases.length} 个工作单元` : '空闲'}
-                </div>
-              </li>
-            ))}
-            {agents.size === 0 && (
-              <li className="text-[10px] text-zinc-600">暂无 agent 在线（租约为空）</li>
-            )}
-          </ul>
-        </aside>
+      {/* 三栏：工作图 / 事实账本 / 假设矩阵+IC 决策 */}
+      <div className="columns">
+        <WorkGraphCol incidentId={incidentId} />
+        <FactLedger incidentId={incidentId} />
+        <div className="col col-right">
+          <div className="col-label">假设对比矩阵</div>
+          <HypothesisMatrix incidentId={incidentId} onArbitrate={onArbitrate} />
 
-        {/* 中：协同诊断流（会议纪要） */}
-        <main className="col-span-7 min-h-0 overflow-y-auto border-r border-zinc-800/70 px-5 py-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-              协同诊断流（{flow.length}）
-            </h3>
-            <span className="text-[9px] text-zinc-600">只有结构化证据与决策改变事故状态</span>
-          </div>
-          <ul className="mt-3">
-            {flow.map((e) => (
-              <EventCard key={e.seq} e={e} />
-            ))}
-            {flow.length === 0 && (
-              <li className="py-8 text-center text-xs text-zinc-600">会议室暂无活动，等待 agent 进场…</li>
-            )}
-          </ul>
-        </main>
-
-        {/* 右：假设面板 */}
-        <aside className="col-span-3 min-w-0 overflow-y-auto p-3">
-          <h3 className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">根因假设</h3>
-          <p className="mt-1 rounded border border-amber-500/30 bg-amber-500/5 px-2 py-1 text-[9px] leading-snug text-amber-200/80">
-            AI 仅做根因定位与辅助分析；止血/修复方案由 IC 决策
-          </p>
-          <ul className="mt-2 space-y-2">
-            {[...(hypotheses ?? [])]
-              .sort((a, b) => b.confidence - a.confidence)
-              .map((h) => {
-                const st = HYP_STATUS[h.status];
-                const hasConflict = h.supporting.length > 0 && h.refuting.length > 0;
-                return (
-                  <li
-                    key={h.id}
-                    className={`rounded-lg border p-2.5 ${
-                      h.status === 'refuted' ? 'border-zinc-800 bg-zinc-900/30 opacity-60' : 'border-violet-500/30 bg-violet-500/5'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <span className={`text-[9px] font-semibold uppercase ${st.cls}`}>{st.label}</span>
-                      {hasConflict && (
-                        <span className="rounded border border-rose-500/40 px-1 text-[8px] text-rose-300">冲突</span>
-                      )}
-                    </div>
-                    <p className="mt-1 text-[11px] leading-snug text-zinc-200">{h.topic}</p>
-                    <div className="mt-1.5 flex items-center gap-2">
-                      <div className="h-1 flex-1 overflow-hidden rounded bg-zinc-800">
-                        <div className="h-full rounded bg-violet-400" style={{ width: `${h.confidence * 100}%` }} />
-                      </div>
-                      <span className="font-mono text-[9px] text-violet-300">{(h.confidence * 100).toFixed(0)}%</span>
-                    </div>
-                    <div className="mt-1 text-[9px] text-zinc-500">
-                      {h.proposed_by} · {fmtTime(h.updated_at)}
-                    </div>
-                  </li>
-                );
-              })}
-            {(hypotheses ?? []).length === 0 && (
-              <li className="text-[10px] text-zinc-600">暂无假设</li>
-            )}
-          </ul>
-
-          {/* 行动区：一键 AI 诊断 + IC 发言 */}
-          <h3 className="mt-4 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">行动</h3>
-          <div className="mt-2 space-y-2">
+          <div className="ic-queue">
+            <div className="col-label">IC 决策队列</div>
+            <div className="ic-type-row">
+              {['guidance', '事实确认', '仲裁裁决', '冻结话题', '止血决策'].map((t) => (
+                <span key={t} className={`ic-type ${guideType === t ? 'sel' : ''}`} onClick={() => setGuideType(t)}>{t === 'guidance' ? 'Guidance' : t}</span>
+              ))}
+            </div>
+            <textarea
+              className="ic-input"
+              placeholder="指示 / 裁决 / 止血决策内容… 只有结构化决策改变事故状态"
+              value={guideText}
+              onChange={(e) => setGuideText(e.target.value)}
+            />
             <button
-              onClick={() => diagnose.mutate()}
+              className="ic-send"
+              disabled={!guideText.trim() || postGuidance.isPending}
+              onClick={() => guideText.trim() && postGuidance.mutate(guideText.trim())}
+            >
+              发布 IC 决策
+            </button>
+            {lastDiag && <div className="action-hint">{lastDiag}</div>}
+            <button
+              className="diag-btn"
               disabled={diagnose.isPending}
-              className="w-full rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-500 disabled:cursor-wait disabled:opacity-60"
+              onClick={() => diagnose.mutate()}
             >
               {diagnose.isPending ? 'AI 诊断中（GLM-5.2 分析真实日志…）' : '🤖 触发 AI 诊断（headless-diagnoser 进场）'}
             </button>
-            {lastDiag && <p className="text-[9px] leading-snug text-zinc-500">{lastDiag}</p>}
-            <textarea
-              value={guideText}
-              onChange={(e) => setGuideText(e.target.value)}
-              placeholder="给全部 agent 的指示（IC 发言）…"
-              rows={2}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-2.5 py-2 text-xs text-zinc-200 placeholder:text-zinc-600 focus:border-emerald-500 focus:outline-none"
-            />
-            <button
-              onClick={() => guideText.trim() && postGuidance.mutate(guideText.trim())}
-              disabled={!guideText.trim() || postGuidance.isPending}
-              className="w-full rounded-lg border border-violet-500/50 bg-violet-500/10 px-3 py-1.5 text-xs font-medium text-violet-300 transition-colors hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              发布 IC 指示
-            </button>
+            <div className="permission-strip">
+              <span className="perm ro">资源只读</span>
+              <span className="perm rw">可提交 Guidance</span>
+              <span className="perm no">无生产执行权限</span>
+            </div>
           </div>
+        </div>
+      </div>
 
-          <h3 className="mt-4 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">IC 发言</h3>
-          <ul className="mt-2 space-y-2">
-            {(guidance ?? []).map((g) => (
-              <li key={g.id} className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-2.5">
-                <div className="flex items-center gap-1.5">
-                  <span className={`rounded border px-1 py-0.5 text-[8px] ${GUIDANCE_STYLE[g.priority]}`}>
-                    {g.priority === 'urgent' ? '紧急' : g.priority === 'directive' ? '指令' : '知会'}
-                  </span>
-                  <span className="text-[9px] text-zinc-500">{g.from_ic}</span>
-                </div>
-                <p className="mt-1 text-[11px] leading-snug text-zinc-200">{g.text}</p>
-              </li>
-            ))}
-            {(guidance ?? []).length === 0 && <li className="text-[10px] text-zinc-600">IC 尚未发言</li>}
-          </ul>
-        </aside>
+      {/* 底部抽屉：活动流（审计信息，降级） */}
+      <div className="drawer">
+        <span className="t">活动流 · 收起</span>
+        <span className="stat">协作纪要 <b>{flowCount}</b> 条</span>
+        <span className="stat">去重查询 <b className="sky">{dedupCount}</b></span>
+        <span className="stat">事实 <b className="ok">{stats?.facts_confirmed ?? 0}</b> / 未解 <b className="warn">{stats?.open_questions ?? 0}</b></span>
+        <span className="toggle">展开 ▴</span>
       </div>
     </div>
   );
