@@ -48,6 +48,12 @@ type Store interface {
 	AddGuidance(ctx context.Context, incidentID string, g *Guidance) error
 	ListGuidance(ctx context.Context, incidentID string) ([]*Guidance, error)
 
+	// ---- Runbook ----
+	AddRunbook(ctx context.Context, incidentID string, rb *Runbook) error
+	ListRunbooks(ctx context.Context, incidentID string) ([]*Runbook, error)
+	ListAllRunbooks(ctx context.Context) ([]*Runbook, error)
+	UpdateRunbook(ctx context.Context, rb *Runbook) error
+
 	// ---- Edge ----
 	AddEdge(ctx context.Context, e *Edge) error
 	ListEdges(ctx context.Context, incidentID string) ([]*Edge, error)
@@ -65,6 +71,7 @@ type MemoryStore struct {
 	facts      map[string]*Fact
 	hypotheses map[string]*Hypothesis
 	guidance   map[string]*Guidance
+	runbooks   map[string]*Runbook
 	edges      map[string]*Edge
 
 	// 按事故作用域索引（incidentID -> 节点 ID 列表）
@@ -89,6 +96,7 @@ func NewMemoryStore() *MemoryStore {
 		facts:         make(map[string]*Fact),
 		hypotheses:    make(map[string]*Hypothesis),
 		guidance:      make(map[string]*Guidance),
+		runbooks:      make(map[string]*Runbook),
 		edges:         make(map[string]*Edge),
 		incWorkNodes:  make(map[string][]string),
 		incOperations: make(map[string][]string),
@@ -376,4 +384,49 @@ func (m *MemoryStore) ListEdges(_ context.Context, incidentID string) ([]*Edge, 
 		out = append(out, m.edges[id])
 	}
 	return out, nil
+}
+
+// ---- Runbook ----
+
+func (m *MemoryStore) AddRunbook(_ context.Context, incidentID string, rb *Runbook) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if err := m.requireIncident(incidentID); err != nil {
+		return err
+	}
+	rb.IncidentID = incidentID
+	m.runbooks[rb.ID] = rb
+	return nil
+}
+
+func (m *MemoryStore) ListRunbooks(_ context.Context, incidentID string) ([]*Runbook, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	out := make([]*Runbook, 0)
+	for _, rb := range m.runbooks {
+		if rb.IncidentID == incidentID {
+			out = append(out, rb.Clone())
+		}
+	}
+	return out, nil
+}
+
+func (m *MemoryStore) ListAllRunbooks(_ context.Context) ([]*Runbook, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	out := make([]*Runbook, 0, len(m.runbooks))
+	for _, rb := range m.runbooks {
+		out = append(out, rb.Clone())
+	}
+	return out, nil
+}
+
+func (m *MemoryStore) UpdateRunbook(_ context.Context, rb *Runbook) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if _, ok := m.runbooks[rb.ID]; !ok {
+		return &NotFoundError{Kind: "runbook", ID: rb.ID}
+	}
+	m.runbooks[rb.ID] = rb
+	return nil
 }

@@ -34,3 +34,16 @@ func (o *Operation) Clone() *Operation {
 	out.ProofTrace = append([]ProofTraceEntry(nil), o.ProofTrace...)
 	return &out
 }
+
+// Clone 深拷贝 Runbook。
+func (r *Runbook) Clone() *Runbook {
+	if r == nil {
+		return nil
+	}
+	out := *r
+	out.Symptoms = append([]string(nil), r.Symptoms...)
+	out.DiagnosticSteps = append([]string(nil), r.DiagnosticSteps...)
+	out.VerificationActions = append([]string(nil), r.VerificationActions...)
+	out.ProofTrace = append([]ProofTraceEntry(nil), r.ProofTrace...)
+	return &out
+}

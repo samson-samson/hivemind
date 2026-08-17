@@ -93,7 +93,8 @@ func (s *Service) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/incidents/{id}", s.handleGetIncident)
 	mux.HandleFunc("GET /api/v1/incidents/{id}/context", s.handleGetContext)
 	// context@vN 路径形式（Go mux 不支持段内通配，用回退路由处理）。
-	mux.HandleFunc("GET /api/v1/incidents/{id}/{rest...}", s.handleContextPathAlias)
+	// context@vN 别名回退：无方法限定，避免 405 短路具体 POST 路由（如 runbooks）。
+	mux.HandleFunc("/api/v1/incidents/{id}/{rest...}", s.handleContextPathAlias)
 
 	// Work graph
 	mux.HandleFunc("POST /api/v1/incidents/{id}/work-nodes", s.handleCreateWorkNode)
@@ -127,6 +128,12 @@ func (s *Service) Handler() http.Handler {
 	// Stats / Events
 	mux.HandleFunc("GET /api/v1/incidents/{id}/stats", s.handleGetStats)
 	mux.HandleFunc("GET /api/v1/incidents/{id}/events", s.handleSSE)
+
+	// 知识蒸馏（runbook 记忆 + 经验召回）
+	mux.HandleFunc("POST /api/v1/incidents/{id}/runbooks", s.handleCreateRunbook)
+	mux.HandleFunc("GET /api/v1/incidents/{id}/runbooks", s.handleListRunbooks)
+	mux.HandleFunc("PATCH /api/v1/runbooks/{rid}", s.handleUpdateRunbook)
+	mux.HandleFunc("GET /api/v1/incidents/{id}/knowledge", s.handleListKnowledge)
 
 	// AI 诊断（触发 headless-diagnoser 进场）
 	mux.HandleFunc("POST /api/v1/incidents/{id}/diagnose", s.handleDiagnose)

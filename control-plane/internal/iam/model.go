@@ -23,6 +23,7 @@ const (
 	NodeFact       NodeType = "fact"
 	NodeHypothesis NodeType = "hypothesis"
 	NodeGuidance   NodeType = "guidance"
+	NodeRunbook    NodeType = "runbook"
 )
 
 // ---- 边类型 ----
@@ -255,3 +256,27 @@ type Edge struct {
 	To         string    `json:"to"`   // 目标节点 ID
 	Timestamp  time.Time `json:"timestamp"`
 }
+
+// Runbook 认证后的可复用排障方案（§5.2/5.6 类型化字段）。
+type Runbook struct {
+	NodeBase
+	IncidentID          string       `json:"incident_id"`                    // 来源事故
+	Title               string       `json:"title"`                          // 标题
+	Symptoms            []string     `json:"symptoms,omitempty"`             // 适用症状（指纹召回）
+	RootCause           string       `json:"root_cause"`                     // 命名根因
+	DiagnosticSteps     []string     `json:"diagnostic_steps,omitempty"`     // 诊断步骤
+	VerificationActions []string     `json:"verification_actions,omitempty"` // 验证动作
+	Rollback            string       `json:"rollback,omitempty"`             // 回滚/补偿
+	SuccessCriteria     string       `json:"success_criteria,omitempty"`     // 成功判定
+	Status              RunbookStatus `json:"status"`                        // candidate→verified→certified
+}
+
+// RunbookStatus runbook 生命周期。
+type RunbookStatus string
+
+const (
+	RunbookCandidate RunbookStatus = "candidate"
+	RunbookVerified  RunbookStatus = "verified"
+	RunbookCertified RunbookStatus = "certified"
+	RunbookRevoked   RunbookStatus = "revoked"
+)
