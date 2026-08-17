@@ -123,10 +123,10 @@ AI 提候选（recommended_actions 分级：mitigate/verify/fix × low/medium/hi
 
 | 期 | 内容 | 状态 |
 |---|---|---|
-| P0 | 只读协同账本：工作图/去重/血缘/IC/会议室 | ✅ 大部完成（后端全 API + 前端会议室 + 告警开房 + AI 诊断） |
+| P0 | 只读协同账本：工作图/去重/血缘/IC/会议室 | ✅ 完成（v3 指挥室 + 分叉签名/frozen + 契约 bug 修复；剩认证/RBAC 见 TODO） |
 | P1 | 评测与检索：历史召回、shadow mode、误召回测量、PG 存储 | ⏳ 下一步 |
 | P2 | 候选生成：事故中候选 + 事故后认证流水线 | ⏳ |
 | P3 | 强类型可回滚动作（单 K8s）+ 威胁模型落地 | ⏳ |
 | P4 | 生态：多云 pack、插件市场、Agent Swarms 深度集成 | ⏳ |
 
-**剩余关键缺口**：SSE 实时（前端轮询→EventSource）、PG 持久化、OACP↔swarm 后端真正联跑、蒸馏两流水线、评测基线与负向指标。
+**剩余关键缺口**（详见 docs/TODO.md）：认证/RBAC、PG 持久化、SSE 接入会议室、蒸馏两流水线、OpenAPI DTO 生成、PMA 状态机落地。
