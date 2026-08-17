@@ -195,7 +195,10 @@ type ledgerEntry struct {
 func postJSON(t *testing.T, url string, body any, wantStatus int, dst any) {
 	t.Helper()
 	b, _ := json.Marshal(body)
-	resp, err := http.Post(url, "application/json", bytes.NewReader(b))
+	req, _ := http.NewRequest(http.MethodPost, url, bytes.NewReader(b))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-API-Key", "hivemind-dev-key")
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("POST %s: %v", url, err)
 	}
@@ -212,7 +215,9 @@ func postJSON(t *testing.T, url string, body any, wantStatus int, dst any) {
 
 func getJSON(t *testing.T, url string, wantStatus int, dst any) {
 	t.Helper()
-	resp, err := http.Get(url)
+	req, _ := http.NewRequest(http.MethodGet, url, nil)
+	req.Header.Set("X-API-Key", "hivemind-dev-key")
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("GET %s: %v", url, err)
 	}
@@ -238,6 +243,7 @@ func doJSON(method, url string, body any) (registerOperationResponse, error) {
 		return res, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-API-Key", "hivemind-dev-key") // 认证（安全基线）
 	httpResp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return res, err

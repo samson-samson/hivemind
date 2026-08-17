@@ -408,7 +408,8 @@ func (s *Service) handlePostFact(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "statement is required")
 		return
 	}
-	confirmedBy := req.ConfirmedBy
+	// 身份绑定：confirmed_by 取认证用户（防伪造 IC 确认事实）。
+	confirmedBy := authUser(r)
 	if confirmedBy == "" {
 		confirmedBy = req.Source
 	}
@@ -530,6 +531,12 @@ func (s *Service) handlePostGuidance(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "text is required")
 		return
 	}
+	// 身份绑定（安全基线）：from_ic 一律取认证用户，客户端自报被忽略。
+	ic := authUser(r)
+	if ic == "" {
+		writeError(w, http.StatusUnauthorized, "IC identity required (authenticate with X-API-Key)")
+		return
+	}
 	g := &iam.Guidance{
 		NodeBase: iam.NodeBase{
 			ID:        iam.NewID("guide"),
@@ -537,7 +544,7 @@ func (s *Service) handlePostGuidance(w http.ResponseWriter, r *http.Request) {
 			Source:    defaultSource(req.Source),
 			Timestamp: timeNow(),
 		},
-		FromIC:   req.FromIC,
+		FromIC:   ic,
 		Text:     req.Text,
 		Priority: req.Priority,
 	}

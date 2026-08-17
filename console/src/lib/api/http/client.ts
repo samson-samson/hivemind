@@ -29,9 +29,12 @@ import type { HivemindApi } from '../client';
 
 const BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8081';
 
+// API Key 认证（安全基线）：默认开发 key，生产用 VITE_API_KEY 覆盖。
+const API_KEY = import.meta.env.VITE_API_KEY ?? 'hivemind-dev-key';
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
     ...init,
   });
   if (!res.ok) {

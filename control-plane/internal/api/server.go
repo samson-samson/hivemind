@@ -41,6 +41,7 @@ type Service struct {
 // NewService 组装各组件并返回服务。freshWindow 为查询结果新鲜度窗口，
 // leaseTTL 为租约心跳超时；传 0 使用默认值。
 func NewService(store iam.Store, freshWindow, leaseTTL time.Duration) *Service {
+	initAuth() // 加载 API key 映射（安全基线）
 	if freshWindow == 0 {
 		freshWindow = 5 * time.Minute
 	}
@@ -138,7 +139,7 @@ func (s *Service) Handler() http.Handler {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 
-	return corsMiddleware(logMiddleware(mux))
+	return corsMiddleware(AuthMiddleware(logMiddleware(mux)))
 }
 
 // corsMiddleware 开发期跨域放行。生产由网关/同域部署处理，白名单可用
