@@ -16,17 +16,15 @@ import (
 	"time"
 )
 
-// handleDiagnose POST /api/v1/incidents/{id}/diagnose
-// 触发一次 LLM 智能诊断（最长 3 分钟）。只读分析 + 写假设节点。
+// triggerDiagnose 触发一次 LLM 智能诊断（后台，最长 3 分钟）。
+// 只读分析 + 写假设节点。供 handleDiagnose 与 ingest auto_diagnose 复用。
 //
 // 关键修复：诊断目标 = 被触发的事故本身（按该事故的 title/symptom
 // 过滤采集），而不是 SLS 最新事故（避免"串房"误导决策）。
-func (s *Service) handleDiagnose(w http.ResponseWriter, r *http.Request) {
-	incidentID := r.PathValue("id")
-	inc, err := s.store.GetIncident(r.Context(), incidentID)
+func (s *Service) triggerDiagnose(ctx context.Context, incidentID string) (string, error) {
+	inc, err := s.store.GetIncident(ctx, incidentID)
 	if err != nil {
-		mapError(w, err)
-		return
+		return "", err
 	}
 
 	script := os.Getenv("OPSHIVE_DIAGNOSE_SCRIPT")
@@ -47,21 +45,30 @@ func (s *Service) handleDiagnose(w http.ResponseWriter, r *http.Request) {
 		"fingerprint": inc.Fingerprint,
 	})
 
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "python3", script,
 		"--push", incidentID, "--cp-base", cpBase,
 		"--incident-json", string(incidentJSON))
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		writeError(w, http.StatusBadGateway,
-			fmt.Sprintf("diagnose failed: %v (hint: set OPSHIVE_DIAGNOSE_SCRIPT, ensure headless-agent deps)", err))
+		return "", fmt.Errorf("diagnose failed: %w (hint: set OPSHIVE_DIAGNOSE_SCRIPT, ensure headless-agent deps)", err)
+	}
+	return string(out)[:min(len(out), 1500)], nil
+}
+
+// handleDiagnose POST /api/v1/incidents/{id}/diagnose
+func (s *Service) handleDiagnose(w http.ResponseWriter, r *http.Request) {
+	incidentID := r.PathValue("id")
+	tail, err := s.triggerDiagnose(r.Context(), incidentID)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"ok":       true,
-		"script":   script,
+		"script":   os.Getenv("OPSHIVE_DIAGNOSE_SCRIPT"),
 		"incident": incidentID,
-		"tail":     string(out)[:min(len(out), 1500)],
+		"tail":     tail,
 	})
 }

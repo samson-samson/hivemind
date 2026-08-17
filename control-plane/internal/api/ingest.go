@@ -8,6 +8,8 @@ package api
 // 可选 auto_diagnose=true 时触发 headless-diagnoser 进场诊断。
 
 import (
+	"context"
+	"log"
 	"net/http"
 	"strings"
 
@@ -109,11 +111,17 @@ func (s *Service) handleIngestAlert(w http.ResponseWriter, r *http.Request) {
 
 	// 可选：自动触发 AI 诊断（headless-diagnoser 进场）。
 	if req.AutoDiagnose {
-		dr := r.Clone(r.Context())
-		dr.SetPathValue("id", inc.ID)
-		s.handleDiagnose(w, dr)
-		resp.Diagnosed = true
-		// handleDiagnose 已写响应；这里仅标记（实际写发生在上面调用中）。
+		// 契约修复：先返回 ingest 响应（created/diagnosed 语义完整），
+		// 诊断异步触发——不再把诊断响应冒充 ingest 响应（此前失败时
+		// 事故已建却返回 502，重试会命中早退）。
+		diagResp := ingestAlertResponse{IncidentID: inc.ID, Created: true, Reused: false, Diagnosed: true}
+		go func() {
+			_, err := s.triggerDiagnose(context.Background(), inc.ID)
+			if err != nil {
+				log.Printf("[ingest] auto_diagnose failed for %s: %v", inc.ID, err)
+			}
+		}()
+		writeJSON(w, http.StatusCreated, diagResp)
 		return
 	}
 

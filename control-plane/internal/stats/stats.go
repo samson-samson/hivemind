@@ -90,9 +90,16 @@ func (c *Collector) Collect(ctx context.Context, incidentID string) (*Snapshot, 
 		s.DedupRate = float64(s.DedupedOperations) / float64(s.TotalOperations)
 	}
 
+	// stale 过滤（§8 不污染）：晚到/过期租约的证据不进统计与独立性。
 	evs, _ := c.store.ListEvidence(ctx, incidentID)
-	s.TotalEvidence = len(evs)
-	perKey, indep := evidence.ScoreGroup(evs)
+	activeEvs := make([]*iam.Evidence, 0, len(evs))
+	for _, e := range evs {
+		if !e.IsStale {
+			activeEvs = append(activeEvs, e)
+		}
+	}
+	s.TotalEvidence = len(activeEvs)
+	perKey, indep := evidence.ScoreGroup(activeEvs)
 	_ = perKey
 	s.UniqueSources = len(perKey)
 	s.IndependenceScore = indep

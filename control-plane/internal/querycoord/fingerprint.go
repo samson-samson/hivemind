@@ -80,6 +80,12 @@ func canonicalStrings(in []string) []string {
 }
 
 // collapseSpace 将连续空白折叠为单个空格，并去除首尾空白。
+//
+// 保守规则（防误合并）：若字符串含引号（字符串字面量，如日志查询
+// 中的 "a  b"），跳过折叠——折叠会改变查询语义，宁可不去重也不误合。
 func collapseSpace(s string) string {
+	if strings.Contains(s, "\"") || strings.Contains(s, "'") {
+		return strings.TrimSpace(s)
+	}
 	return strings.Join(strings.Fields(s), " ")
 }

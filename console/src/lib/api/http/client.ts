@@ -307,14 +307,18 @@ export class HttpHivemindApi implements HivemindApi {
     return request<BackendWorkNode[]>(`/api/v1/incidents/${id}/work-nodes`).then((xs) => xs.map((x) => normWorkNode(x, id)));
   }
   createWorkNode(id: ID, input: CreateWorkNodeInput): Promise<WorkNode> {
+    // 契约修复：补发 cost（等级→后端整数映射）与 depends_on（工作图 DAG 边）。
+    const costMap: Record<WorkNode['cost'], number> = { low: 5, medium: 12, high: 20 };
     return request<BackendWorkNode>(`/api/v1/incidents/${id}/work-nodes`, {
       method: 'POST',
       body: JSON.stringify({
         question: input.question,
         scope: input.scope,
         expected_evidence: input.expected_evidence,
+        cost: costMap[input.cost] ?? 10,
         role: input.role,
         assignee: input.assignee,
+        depends_on: input.depends_on ?? [],
         deadline: input.deadline ?? null,
       }),
     }).then((x) => normWorkNode(x, id));
@@ -433,15 +437,21 @@ export class HttpHivemindApi implements HivemindApi {
     const es = new EventSource(`${BASE}/api/v1/incidents/${id}/events`);
     this.eventSources.set(id, es);
     const listen = (ev: MessageEvent<string>) => {
-      const payload = JSON.parse(ev.data) as { id?: string; type?: string; source?: string; timestamp?: string };
+      // 服务端格式：event: <type>\ndata: {"id","type","source","timestamp","data":{...}}
+      // 实体字段在 data.data 内（修复：此前从顶层读 → actor 恒 backend、ref_id 恒 null）。
+      const payload = JSON.parse(ev.data) as {
+        id?: string; type?: string; source?: string; timestamp?: string;
+        data?: { id?: string; source?: string; timestamp?: string };
+      };
+      const inner = payload.data ?? {};
       const event: IncidentEvent = {
         seq: ++this.sseSeq,
         incident_id: id,
         type: (ev.type as IncidentEvent['type']) ?? 'incident.updated',
-        at: payload.timestamp ?? new Date().toISOString(),
-        actor: payload.source ?? 'backend',
+        at: inner.timestamp ?? payload.timestamp ?? new Date().toISOString(),
+        actor: inner.source ?? payload.source ?? 'backend',
         summary: ev.type ?? 'incident.updated',
-        ref_id: payload.id ?? null,
+        ref_id: inner.id ?? payload.id ?? null,
       };
       handler(event);
     };
