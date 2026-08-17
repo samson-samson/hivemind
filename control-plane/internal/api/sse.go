@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"time"
 	"fmt"
 	"net/http"
 )
@@ -33,16 +34,26 @@ func (s *Service) handleSSE(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "event: connected\ndata: {\"incident_id\":%q}\n\n", incidentID)
 	flusher.Flush()
 
+	// 事件 ID（SSE 标准语义）：重连时前端带 Last-Event-ID 可续传。
+	// P0 无事件存储，重连后由前端重新拉快照 + 增量；ID 仅用于去重与乱序检测。
+	var seq int64
+	heartbeat := time.NewTicker(15 * time.Second)
+	defer heartbeat.Stop()
+
 	for {
 		select {
 		case <-r.Context().Done():
 			return
+		case <-heartbeat.C:
+			fmt.Fprint(w, ": ping\n\n") // 注释行：防代理断连
+			flusher.Flush()
 		case ev := <-sub.C:
 			b, err := json.Marshal(ev)
 			if err != nil {
 				continue
 			}
-			fmt.Fprintf(w, "event: %s\ndata: %s\n\n", ev.Type, b)
+			seq++
+			fmt.Fprintf(w, "id: %d\nevent: %s\ndata: %s\n\n", seq, ev.Type, b)
 			flusher.Flush()
 		}
 	}

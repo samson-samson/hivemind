@@ -4,6 +4,7 @@ package eventbus
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -23,9 +24,11 @@ type Subscription struct {
 
 // Bus 按事故作用域分发事件的发布/订阅总线。
 // 消费方需及时消费；通道缓冲满时丢弃最早事件（SSE 慢消费者保护，避免阻塞主流程）。
+// 注意：丢旧保新（监控语义——新状态比旧状态重要），并统计丢弃数供告警。
 type Bus struct {
-	mu     sync.RWMutex
-	nextID uint64
+	mu      sync.RWMutex
+	nextID  uint64
+	dropped int64
 	// subs[incidentID] -> map[subID]chan
 	subs map[string]map[uint64]chan Event
 }
@@ -50,11 +53,25 @@ func (b *Bus) Publish(incidentID, typ string, data any) {
 	for _, ch := range chans {
 		select {
 		case ch <- ev:
-		default: // 慢消费者：丢弃最早，避免阻塞
+		default:
+			// 慢消费者：先丢弃通道里最早的事件，再尝试放入新事件。
+			// （此前实现丢的是"当前最新"，与注释相反——已修复为丢旧保新。）
+			select {
+			case <-ch:
+			default:
+			}
+			select {
+			case ch <- ev:
+			default:
+				atomic.AddInt64(&b.dropped, 1)
+			}
 		}
 	}
 	b.mu.RUnlock()
 }
+
+// DroppedCount 累计丢弃事件数（SSE 慢消费者告警用）。
+func (b *Bus) DroppedCount() int64 { return atomic.LoadInt64(&b.dropped) }
 
 // Subscribe 订阅某事故的事件流。
 func (b *Bus) Subscribe(incidentID string) *Subscription {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { api } from '../../lib/api';
@@ -194,8 +194,36 @@ export function MeetingRoom() {
   const { incidentId = '' } = useParams();
   const queryClient = useQueryClient();
 
-  // 10s 轮询（SSE 就绪后可换 EventSource）
-  const REFRESH = { refetchInterval: 10_000 };
+  // 实时性：SSE 事件驱动刷新为主，60s 长轮询兜底（断连/事件丢失时保底）。
+  const REFRESH = { refetchInterval: 60_000 };
+  // SSE 实时订阅：事件到达 → invalidate 对应实体（增量合并由 query 重取完成）。
+  const onEvent = useCallback(
+    (ev: { type: string }) => {
+      const keyMap: Record<string, string[]> = {
+        'work_node.created': ['work-nodes', incidentId],
+        'work_node.updated': ['work-nodes', incidentId],
+        'evidence.appended': ['evidence', incidentId],
+        'fact.posted': ['facts', incidentId],
+        'hypothesis.posted': ['hypotheses', incidentId],
+        'guidance.posted': ['guidance', incidentId],
+        'runbook.created': ['runbooks', incidentId],
+        'runbook.updated': ['runbooks', incidentId],
+        'action.created': ['actions', incidentId],
+        'action.executed': ['actions', incidentId],
+        'lease.claimed': ['leases', incidentId],
+        'lease.heartbeat': ['leases', incidentId],
+        'lease.released': ['leases', incidentId],
+        'operation.registered': ['operations', incidentId],
+      };
+      const key = keyMap[ev.type];
+      if (key) queryClient.invalidateQueries({ queryKey: key });
+      queryClient.invalidateQueries({ queryKey: ['stats', incidentId] });
+      queryClient.invalidateQueries({ queryKey: ['events', incidentId] });
+    },
+    [incidentId, queryClient],
+  );
+  useEffect(() => api.subscribeEvents(incidentId, onEvent), [incidentId, onEvent]);
+
   const { data: incident } = useQuery({ queryKey: ['incident', incidentId], queryFn: () => api.getIncident(incidentId), ...REFRESH });
   const { data: stats } = useQuery({ queryKey: ['stats', incidentId], queryFn: () => api.getStats(incidentId), ...REFRESH });
   const { data: events } = useQuery({ queryKey: ['events', incidentId], queryFn: () => api.listEvents(incidentId), ...REFRESH });
