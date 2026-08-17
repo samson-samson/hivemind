@@ -287,22 +287,23 @@ export class HttpHivemindApi implements HivemindApi {
       }),
     }).then(normIncident);
   }
-  async getContext(id: ID, _version?: number): Promise<ContextPack> {
-    const [incident, workNodes, evidence, facts, hypotheses] = await Promise.all([
-      this.getIncident(id),
-      this.listWorkNodes(id),
-      this.listEvidence(id),
-      this.listFacts(id),
-      this.listHypotheses(id),
-    ]);
+  async getContext(id: ID, version?: number): Promise<ContextPack> {
+    // 契约修复：用后端 context@vN 单快照（此前前端并发拼 5 个列表，
+    // 各列表可能来自不同时间点——同一快照语义由后端保证）。
+    const res = await request<{
+      incident: BackendIncident;
+      work_nodes: BackendWorkNode[]; evidence: BackendEvidence[];
+      facts: BackendFact[]; hypotheses: BackendHypothesis[];
+      refutation_checklist?: string[]; version?: number;
+    }>(`/api/v1/incidents/${id}/context${version ? `@v${version}` : ''}`);
     return {
-      incident,
-      work_nodes: workNodes,
-      evidence,
-      facts,
-      hypotheses,
-      refutation_checklist: hypotheses.filter((h) => h.status === 'refuted').map((h) => h.topic),
-      version: _version ?? 1,
+      incident: normIncident(res.incident),
+      work_nodes: (res.work_nodes ?? []).map((x) => normWorkNode(x, id)),
+      evidence: (res.evidence ?? []).map((x) => normEvidence(x, id)),
+      facts: (res.facts ?? []).map((x) => normFact(x, id)),
+      hypotheses: (res.hypotheses ?? []).map((x) => normHypothesis(x, id)),
+      refutation_checklist: res.refutation_checklist ?? [],
+      version: res.version ?? version ?? 1,
     };
   }
 
