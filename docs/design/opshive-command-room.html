@@ -23,33 +23,23 @@
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    background: var(--bg);
-    color: var(--text);
+    background: var(--bg); color: var(--text);
     font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
-    font-size: 13px;
-    min-height: 100vh;
-    overflow-x: hidden;
+    font-size: 13px; min-height: 100vh; overflow-x: hidden;
   }
-  /* 作战室网格底 */
   body::before {
-    content: "";
-    position: fixed; inset: 0;
+    content: ""; position: fixed; inset: 0;
     background:
       linear-gradient(var(--grid-line) 1px, transparent 1px),
       linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-    background-size: 32px 32px;
-    pointer-events: none;
+    background-size: 32px 32px; pointer-events: none;
   }
-  .mono { font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace; font-variant-numeric: tabular-nums; }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-variant-numeric: tabular-nums; }
   .num { font-family: ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; }
 
-  /* ===== 品牌条 ===== */
   .brandbar {
-    height: 44px;
-    display: flex; align-items: center; gap: 16px;
-    padding: 0 20px;
-    border-bottom: 1px solid var(--border);
-    background: rgba(13, 18, 28, 0.9);
+    height: 44px; display: flex; align-items: center; gap: 16px; padding: 0 20px;
+    border-bottom: 1px solid var(--border); background: rgba(13, 18, 28, 0.9);
     position: relative; z-index: 2;
   }
   .brand { display: flex; align-items: center; gap: 10px; }
@@ -58,33 +48,19 @@
     background: conic-gradient(var(--ok) 0 40%, var(--hyp) 40% 65%, var(--agent) 65% 85%, var(--warn) 85%);
     box-shadow: 0 0 12px rgba(52, 211, 153, 0.35);
   }
-  .brand-name { font-family: ui-monospace, Menlo, monospace; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; color: var(--text); }
+  .brand-name { font-family: ui-monospace, Menlo, monospace; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; }
   .brand-name em { font-style: normal; color: var(--ok); }
-  .env-pill {
-    font-family: ui-monospace, Menlo, monospace; font-size: 10px; letter-spacing: 0.08em;
-    color: var(--text-2); border: 1px solid var(--border); border-radius: 3px; padding: 2px 8px;
-  }
+  .env-pill { font-family: ui-monospace, Menlo, monospace; font-size: 10px; letter-spacing: 0.08em; color: var(--text-2); border: 1px solid var(--border); border-radius: 3px; padding: 2px 8px; }
   .brandbar-right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
   .link { color: var(--text-3); font-size: 12px; text-decoration: none; }
   .link:hover { color: var(--text-2); }
 
-  /* ===== 布局骨架 ===== */
   .layout { display: grid; grid-template-columns: 236px 1fr; height: calc(100vh - 44px); }
   .sidebar { border-right: 1px solid var(--border); padding: 12px 10px; overflow-y: auto; }
   .main { display: flex; flex-direction: column; min-width: 0; }
 
-  /* ===== 侧栏：事故房列表 ===== */
-  .side-label {
-    font-family: ui-monospace, Menlo, monospace; font-size: 10px; letter-spacing: 0.16em;
-    color: var(--text-3); text-transform: uppercase; padding: 4px 8px 8px;
-  }
-  .room {
-    display: block; text-decoration: none; color: inherit;
-    border: 1px solid var(--border-soft); border-left: 3px solid var(--text-3);
-    border-radius: 3px; background: var(--panel-2);
-    padding: 8px 10px; margin-bottom: 8px;
-    transition: border-color 0.15s, background 0.15s;
-  }
+  .side-label { font-family: ui-monospace, Menlo, monospace; font-size: 10px; letter-spacing: 0.16em; color: var(--text-3); text-transform: uppercase; padding: 4px 8px 8px; }
+  .room { display: block; text-decoration: none; color: inherit; border: 1px solid var(--border-soft); border-left: 3px solid var(--text-3); border-radius: 3px; background: var(--panel-2); padding: 8px 10px; margin-bottom: 8px; transition: border-color 0.15s, background 0.15s; }
   .room:hover { border-color: var(--border); background: var(--panel); }
   .room.active { border-left-color: var(--ok); background: var(--panel); }
   .room.p1 { border-left-color: var(--bad); }
@@ -99,412 +75,378 @@
   .dot.idle { background: var(--text-3); }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
   .room-title { margin-top: 5px; font-size: 12px; color: var(--text); line-height: 1.35; }
-  .room-fp { margin-top: 4px; font-family: ui-monospace, Menlo, monospace; font-size: 9px; color: var(--text-3); letter-spacing: 0.02em; }
+  .room-fp { margin-top: 4px; font-family: ui-monospace, Menlo, monospace; font-size: 9px; color: var(--text-3); }
   .room-meta { margin-top: 3px; font-size: 10px; color: var(--text-3); display: flex; gap: 8px; }
   .room-meta .ai { color: var(--hyp); }
 
-  /* ===== 事故顶栏 ===== */
+  /* 顶栏：状态 + 影响 + 止血 + 仲裁 */
   .incident-bar {
-    display: flex; align-items: center; gap: 12px;
-    padding: 10px 20px; border-bottom: 1px solid var(--border);
-    background: rgba(13, 18, 28, 0.6);
+    display: flex; align-items: center; gap: 14px;
+    padding: 9px 20px; border-bottom: 1px solid var(--border); background: rgba(13, 18, 28, 0.6); flex-wrap: wrap;
   }
-  .inc-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .inc-title { font-size: 15px; font-weight: 600; }
   .inc-badge { font-family: ui-monospace, Menlo, monospace; font-size: 10px; padding: 2px 7px; border-radius: 3px; font-weight: 700; }
   .inc-badge.p1 { background: rgba(251, 113, 133, 0.12); color: var(--bad); border: 1px solid rgba(251,113,133,0.35); }
-  .inc-state { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-2); }
-  .inc-ic { font-size: 11px; color: var(--text-3); }
-  .inc-ic b { color: var(--hyp); font-weight: 600; }
-  .nav { display: flex; gap: 2px; margin-left: 16px; }
-  .nav a {
-    font-size: 11px; color: var(--text-3); text-decoration: none;
+  .kv { display: flex; align-items: baseline; gap: 6px; }
+  .kv .k { font-size: 10px; color: var(--text-3); }
+  .kv .v { font-size: 11px; color: var(--text-2); font-weight: 600; }
+  .kv .v.warn { color: var(--warn); }
+  .kv .v.bad { color: var(--bad); }
+  .kv .v.mono { font-family: ui-monospace, Menlo, monospace; }
+  .arbitrate {
+    display: flex; align-items: center; gap: 6px;
+    border: 1px solid rgba(251,113,133,0.5); background: rgba(251,113,133,0.08);
     padding: 3px 8px; border-radius: 3px;
   }
+  .arbitrate .t { font-size: 10px; color: var(--bad); }
+  .arbitrate .v { font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: var(--bad); font-weight: 700; }
+  .nav { display: flex; gap: 2px; }
+  .nav a { font-size: 11px; color: var(--text-3); text-decoration: none; padding: 3px 8px; border-radius: 3px; }
   .nav a:hover { color: var(--text-2); background: var(--panel); }
   .nav a.on { color: var(--ok); background: rgba(52,211,153,0.08); }
-  .flywheel-wrap { margin-left: auto; display: flex; align-items: center; gap: 20px; }
-  .flywheel { display: flex; align-items: center; gap: 8px; }
-  .flywheel-ring {
-    width: 34px; height: 34px; border-radius: 50%;
-    background: conic-gradient(var(--ok) 0 216deg, #263041 216deg);
-    -webkit-mask: radial-gradient(circle, transparent 42%, black 43%);
-    mask: radial-gradient(circle, transparent 42%, black 43%);
-    animation: spin 14s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .flywheel-label { font-size: 10px; color: var(--text-3); line-height: 1.25; }
-  .flywheel-val { font-family: ui-monospace, Menlo, monospace; font-size: 13px; color: var(--ok); font-weight: 700; }
-  .stat { line-height: 1.3; }
-  .stat-label { font-size: 10px; color: var(--text-3); }
-  .stat-val { font-family: ui-monospace, Menlo, monospace; font-size: 13px; font-weight: 600; }
-  .stat-val.ok { color: var(--ok); }
-  .stat-val.warn { color: var(--warn); }
-  .stat-val.sky { color: var(--agent); }
-  .stat-val.hyp { color: var(--hyp); }
+  .ctx-meta { margin-left: auto; display: flex; gap: 12px; font-family: ui-monospace, Menlo, monospace; font-size: 9px; color: var(--text-3); }
 
-  /* ===== 三栏 ===== */
-  .columns { display: grid; grid-template-columns: 200px 1fr 300px; flex: 1; min-height: 0; }
+  /* 主体三栏 */
+  .columns { display: grid; grid-template-columns: 230px 1fr 320px; flex: 1; min-height: 0; }
   .col { min-height: 0; overflow-y: auto; }
   .col-left { border-right: 1px solid var(--border); padding: 12px 10px; }
   .col-mid { border-right: 1px solid var(--border); padding: 14px 18px; }
   .col-right { padding: 12px 12px; }
-  .col-label {
-    font-family: ui-monospace, Menlo, monospace; font-size: 10px; letter-spacing: 0.16em;
-    color: var(--text-3); text-transform: uppercase;
-  }
+  .col-label { font-family: ui-monospace, Menlo, monospace; font-size: 10px; letter-spacing: 0.16em; color: var(--text-3); text-transform: uppercase; }
   .col-label .count { color: var(--text-2); }
 
-  /* 左：与会 Agent */
-  .agent {
+  /* 左：工作图（DAG） */
+  .wg-node {
     border: 1px solid var(--border-soft); border-left: 3px solid var(--text-3);
-    border-radius: 3px; background: var(--panel-2); padding: 9px 10px; margin-top: 10px;
+    border-radius: 3px; background: var(--panel-2); padding: 8px 10px; margin-top: 10px; position: relative;
   }
-  .agent.on { border-left-color: var(--agent); }
-  .agent-role { font-size: 10px; color: var(--text-3); letter-spacing: 0.04em; }
-  .agent-name { margin-top: 3px; font-size: 12px; color: var(--text); font-weight: 600; display: flex; align-items: center; gap: 6px; }
-  .agent-name .lamp { width: 6px; height: 6px; border-radius: 50%; background: var(--text-3); }
-  .agent-name .lamp.on { background: var(--ok); box-shadow: 0 0 6px rgba(52,211,153,0.6); }
-  .agent-name .lamp.on.working { animation: pulse 2s ease-in-out infinite; }
-  .agent-name .tag-ai { font-size: 9px; color: var(--hyp); border: 1px solid rgba(167,139,250,0.4); border-radius: 3px; padding: 0 4px; }
-  .agent-work { margin-top: 5px; font-size: 10px; color: var(--text-3); }
-  .agent-work b { color: var(--agent); font-weight: 600; }
+  .wg-node.done { opacity: 0.55; }
+  .wg-node.active { border-left-color: var(--agent); }
+  .wg-node.skeptic { border-left-color: var(--warn); }
+  .wg-edge { margin: 0 auto; width: 1px; height: 12px; background: var(--border-soft); }
+  .wg-q { font-size: 11px; color: var(--text); line-height: 1.4; }
+  .wg-meta { margin-top: 5px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 9px; color: var(--text-3); }
+  .wg-meta .agent { color: var(--agent); }
+  .wg-meta .role { font-family: ui-monospace, Menlo, monospace; letter-spacing: 0.05em; }
+  .wg-meta .budget { font-family: ui-monospace, Menlo, monospace; }
+  .wg-meta .lease { color: var(--warn); font-family: ui-monospace, Menlo, monospace; }
+  .wg-meta .ai-tag { color: var(--hyp); border: 1px solid rgba(167,139,250,0.4); border-radius: 3px; padding: 0 3px; }
+  .wg-add { margin-top: 12px; border: 1px dashed var(--border); border-radius: 3px; padding: 7px; font-size: 10px; color: var(--text-3); text-align: center; }
 
-  /* 中：协同诊断流 */
-  .stream { margin-top: 14px; }
-  .stream-item { display: flex; gap: 10px; }
-  .stream-rail { display: flex; flex-direction: column; align-items: center; width: 10px; }
-  .stream-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; }
-  .stream-rail::after { content: ""; width: 1px; flex: 1; background: var(--border-soft); margin-top: 5px; }
-  .stream-item:last-child .stream-rail::after { display: none; }
-  .stream-dot.sky { background: var(--agent); }
-  .stream-dot.ok { background: var(--ok); }
-  .stream-dot.hyp { background: var(--hyp); }
-  .stream-dot.warn { background: var(--warn); }
-  .stream-card {
-    flex: 1; margin-bottom: 14px; min-width: 0;
-    border: 1px solid var(--border-soft); border-radius: 3px;
-    background: var(--panel-2); padding: 10px 12px;
+  /* 中：事实账本 + 盲区 + 冲突 + 下一动作 */
+  .ledger-item {
+    display: flex; gap: 10px; margin-top: 12px;
   }
-  .stream-head { display: flex; align-items: center; gap: 8px; }
-  .stream-tag { font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 3px; letter-spacing: 0.03em; }
-  .stream-tag.sky { background: rgba(56,189,248,0.12); color: var(--agent); }
-  .stream-tag.ok { background: rgba(52,211,153,0.12); color: var(--ok); }
-  .stream-tag.hyp { background: rgba(167,139,250,0.12); color: var(--hyp); }
-  .stream-tag.warn { background: rgba(245,158,11,0.12); color: var(--warn); }
-  .stream-actor { font-size: 11px; color: var(--text-2); font-weight: 600; }
-  .stream-time { margin-left: auto; font-family: ui-monospace, Menlo, monospace; font-size: 10px; color: var(--text-3); }
-  .stream-body { margin-top: 6px; font-size: 12px; color: var(--text); line-height: 1.55; }
-  .stream-body .ev-id { font-family: ui-monospace, Menlo, monospace; font-size: 10px; color: var(--text-3); }
-  .stream-body .conf { font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: var(--hyp); font-weight: 700; }
+  .ledger-rail { display: flex; flex-direction: column; align-items: center; width: 10px; }
+  .ledger-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; }
+  .ledger-rail::after { content: ""; width: 1px; flex: 1; background: var(--border-soft); margin-top: 5px; }
+  .ledger-item:last-child .ledger-rail::after { display: none; }
+  .ledger-dot.ok { background: var(--ok); }
+  .ledger-dot.sky { background: var(--agent); }
+  .ledger-card {
+    flex: 1; min-width: 0; margin-bottom: 10px;
+    border: 1px solid var(--border-soft); border-radius: 3px; background: var(--panel-2); padding: 9px 12px;
+  }
+  .ledger-card.fact { border-left: 3px solid var(--ok); }
+  .ledger-card.evidence { border-left: 3px solid var(--agent); }
+  .ledger-head { display: flex; align-items: center; gap: 8px; }
+  .ledger-tag { font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 3px; }
+  .ledger-tag.fact { background: rgba(52,211,153,0.12); color: var(--ok); }
+  .ledger-tag.ev { background: rgba(56,189,248,0.12); color: var(--agent); }
+  .ledger-src { font-size: 10px; color: var(--text-3); }
+  .ledger-time { margin-left: auto; font-family: ui-monospace, Menlo, monospace; font-size: 9px; color: var(--text-3); }
+  .why { font-size: 9px; color: var(--text-3); border: 1px solid var(--border); border-radius: 3px; padding: 0 5px; text-decoration: none; }
+  .why:hover { color: var(--text-2); }
+  .ledger-body { margin-top: 5px; font-size: 12px; color: var(--text); line-height: 1.5; }
+  .ledger-body .ref { font-family: ui-monospace, Menlo, monospace; font-size: 10px; color: var(--text-3); }
+  .ledger-body .indep { font-family: ui-monospace, Menlo, monospace; font-size: 10px; color: var(--ok); }
 
-  /* 右：假设 + 行动 */
-  .hyp {
-    border: 1px solid var(--border-soft); border-left: 3px solid var(--hyp);
-    border-radius: 3px; background: var(--panel-2); padding: 9px 10px; margin-top: 10px;
+  .gap-box { border: 1px dashed var(--warn); border-radius: 3px; padding: 8px 10px; margin-top: 8px; font-size: 11px; color: var(--text-2); }
+  .gap-box .h { font-family: ui-monospace, Menlo, monospace; font-size: 9px; letter-spacing: 0.12em; color: var(--warn); text-transform: uppercase; }
+  .gap-box li { margin-left: 14px; margin-top: 3px; }
+  .next-action {
+    margin-top: 10px; border: 1px solid rgba(52,211,153,0.4); background: rgba(52,211,153,0.06);
+    border-radius: 3px; padding: 9px 12px;
   }
-  .hyp.refuted { border-left-color: var(--text-3); opacity: 0.55; }
-  .hyp .hyp-head { display: flex; align-items: center; gap: 6px; font-size: 10px; }
-  .hyp-state { font-family: ui-monospace, Menlo, monospace; font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; }
-  .hyp-state.sup { color: var(--ok); }
-  .hyp-state.str { color: var(--hyp); }
-  .hyp-state.ref { color: var(--text-3); }
-  .conflict { font-size: 9px; color: var(--bad); border: 1px solid rgba(251,113,133,0.4); border-radius: 3px; padding: 0 4px; }
-  .hyp-title { margin-top: 5px; font-size: 11px; color: var(--text); line-height: 1.4; }
-  .hyp-bar { margin-top: 7px; display: flex; align-items: center; gap: 8px; }
-  .hyp-track { flex: 1; height: 4px; border-radius: 2px; background: #232E3F; overflow: hidden; }
-  .hyp-fill { height: 100%; border-radius: 2px; }
-  .hyp-fill.sup { background: var(--ok); }
-  .hyp-fill.str { background: var(--hyp); }
-  .hyp-fill.ref { background: var(--text-3); }
-  .hyp-pct { font-family: ui-monospace, Menlo, monospace; font-size: 10px; color: var(--hyp); font-weight: 700; }
-  .hyp-meta { margin-top: 4px; font-size: 9px; color: var(--text-3); }
-  .hyp-meta .src-ai { color: var(--hyp); }
-  .hyp-meta .src-human { color: var(--agent); }
+  .next-action .h { font-family: ui-monospace, Menlo, monospace; font-size: 9px; letter-spacing: 0.12em; color: var(--ok); text-transform: uppercase; }
+  .next-action .v { margin-top: 4px; font-size: 12px; color: var(--text); }
+  .next-action .who { margin-top: 3px; font-size: 10px; color: var(--agent); }
+  .conflict-box { border: 1px solid rgba(251,113,133,0.4); background: rgba(251,113,133,0.05); border-radius: 3px; padding: 8px 10px; margin-top: 8px; font-size: 11px; }
+  .conflict-box .h { font-family: ui-monospace, Menlo, monospace; font-size: 9px; letter-spacing: 0.12em; color: var(--bad); text-transform: uppercase; }
 
-  /* 行动区 */
-  .actions { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; }
-  .diag-btn {
-    width: 100%; padding: 10px 12px;
-    font-family: ui-monospace, Menlo, monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
-    color: #04120C; background: var(--ok); border: none; border-radius: 3px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-  }
-  .diag-btn:hover { filter: brightness(1.1); }
-  .diag-btn .radar { width: 12px; height: 12px; border: 2px solid rgba(4,18,12,0.6); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
-  .action-hint { margin-top: 6px; font-size: 10px; color: var(--text-3); line-height: 1.5; }
-  .ic-box { margin-top: 10px; }
-  .ic-input {
-    width: 100%; min-height: 52px; resize: none;
-    background: var(--panel-2); border: 1px solid var(--border); border-radius: 3px;
-    color: var(--text); font-size: 12px; padding: 8px 10px; font-family: inherit;
-  }
+  /* 右：假设对比矩阵 + IC 决策队列 */
+  .hyp-matrix { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 10px; }
+  .hyp-matrix th { text-align: left; font-family: ui-monospace, Menlo, monospace; font-size: 9px; letter-spacing: 0.08em; color: var(--text-3); text-transform: uppercase; padding: 4px 6px; border-bottom: 1px solid var(--border); }
+  .hyp-matrix td { padding: 7px 6px; border-bottom: 1px solid var(--border-soft); vertical-align: top; line-height: 1.45; }
+  .hyp-matrix tr.refuted td { opacity: 0.5; }
+  .hyp-matrix tr.conflicted td { background: rgba(251,113,133,0.04); }
+  .hs { font-family: ui-monospace, Menlo, monospace; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; letter-spacing: 0.04em; white-space: nowrap; }
+  .hs.sup { background: rgba(52,211,153,0.12); color: var(--ok); }
+  .hs.conf { background: rgba(251,113,133,0.12); color: var(--bad); }
+  .hs.ref { background: rgba(91,103,121,0.2); color: var(--text-3); }
+  .hs.frz { background: rgba(167,139,250,0.12); color: var(--hyp); }
+  .hs.prop { background: rgba(56,189,248,0.1); color: var(--agent); }
+  .hs-name { font-size: 10px; color: var(--text); font-weight: 600; display: block; margin-top: 2px; }
+  .weak { font-size: 9px; color: var(--text-3); }
+  .lineage-tag { font-family: ui-monospace, Menlo, monospace; font-size: 9px; color: var(--ok); }
+  .falsifier { font-size: 9px; color: var(--text-2); }
+  .falsifier b { color: var(--warn); font-weight: 600; }
+
+  .ic-queue { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; }
+  .ic-type-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .ic-type { font-size: 10px; padding: 3px 8px; border-radius: 3px; border: 1px solid var(--border); color: var(--text-3); cursor: pointer; }
+  .ic-type:hover { color: var(--text-2); border-color: var(--text-3); }
+  .ic-type.sel { background: rgba(167,139,250,0.14); border-color: rgba(167,139,250,0.5); color: var(--hyp); }
+  .ic-input { width: 100%; min-height: 50px; resize: none; margin-top: 8px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 3px; color: var(--text); font-size: 12px; padding: 8px 10px; font-family: inherit; }
   .ic-input:focus { outline: none; border-color: var(--hyp); }
   .ic-input::placeholder { color: var(--text-3); }
-  .ic-send {
-    margin-top: 6px; width: 100%; padding: 8px;
-    background: rgba(167,139,250,0.12); color: var(--hyp);
-    border: 1px solid rgba(167,139,250,0.45); border-radius: 3px;
-    font-size: 12px; font-weight: 600; cursor: pointer;
-  }
+  .ic-preview { margin-top: 6px; font-size: 9px; color: var(--text-3); font-family: ui-monospace, Menlo, monospace; }
+  .ic-send { margin-top: 8px; width: 100%; padding: 8px; background: rgba(167,139,250,0.12); color: var(--hyp); border: 1px solid rgba(167,139,250,0.45); border-radius: 3px; font-size: 12px; font-weight: 600; cursor: pointer; }
   .ic-send:hover { background: rgba(167,139,250,0.2); }
-  .boundary-note {
-    margin-top: 12px; padding: 8px 10px;
-    border: 1px solid rgba(245,158,11,0.3); background: rgba(245,158,11,0.06);
-    border-radius: 3px; font-size: 10px; color: rgba(251,191,36,0.85); line-height: 1.5;
-  }
+  .permission-strip { margin-top: 10px; display: flex; gap: 8px; font-size: 9px; }
+  .perm { font-family: ui-monospace, Menlo, monospace; padding: 2px 6px; border-radius: 3px; }
+  .perm.ro { color: var(--ok); border: 1px solid rgba(52,211,153,0.35); }
+  .perm.rw { color: var(--hyp); border: 1px solid rgba(167,139,250,0.35); }
+  .perm.no { color: var(--text-3); border: 1px solid var(--border); }
 
-  /* 底部状态条 */
+  /* 底部抽屉（活动流降级） */
+  .drawer {
+    border-top: 1px solid var(--border); background: rgba(13, 18, 28, 0.92);
+    padding: 6px 16px; display: flex; align-items: center; gap: 16px;
+  }
+  .drawer .t { font-family: ui-monospace, Menlo, monospace; font-size: 9px; letter-spacing: 0.12em; color: var(--text-3); text-transform: uppercase; }
+  .drawer .stat { font-size: 10px; color: var(--text-2); }
+  .drawer .stat b { font-family: ui-monospace, Menlo, monospace; }
+  .drawer .stat b.ok { color: var(--ok); }
+  .drawer .stat b.sky { color: var(--agent); }
+  .drawer .stat b.warn { color: var(--warn); }
+  .drawer .toggle { margin-left: auto; font-size: 10px; color: var(--text-3); cursor: pointer; }
+
   .statusbar {
-    height: 26px; display: flex; align-items: center; gap: 16px;
-    padding: 0 16px; border-top: 1px solid var(--border);
+    height: 24px; display: flex; align-items: center; gap: 14px; padding: 0 16px;
+    border-top: 1px solid var(--border);
     font-family: ui-monospace, Menlo, monospace; font-size: 9px; letter-spacing: 0.05em; color: var(--text-3);
     background: rgba(13, 18, 28, 0.9);
   }
-  .statusbar .ok { color: var(--ok); }
-  .statusbar .hyp { color: var(--hyp); }
 
-  /* 设计注记 */
   .notes {
-    position: fixed; right: 14px; bottom: 40px; width: 240px; z-index: 5;
+    position: fixed; right: 14px; bottom: 56px; width: 250px; z-index: 5;
     border: 1px solid var(--border); border-radius: 4px; background: rgba(13,18,28,0.94);
-    padding: 12px 14px; font-size: 11px; line-height: 1.6; color: var(--text-2);
+    padding: 12px 14px; font-size: 10px; line-height: 1.6; color: var(--text-2);
   }
   .notes h4 { font-family: ui-monospace, Menlo, monospace; font-size: 10px; letter-spacing: 0.14em; color: var(--ok); text-transform: uppercase; margin-bottom: 6px; }
   .notes li { margin-left: 14px; margin-bottom: 4px; }
   .notes .tag { color: var(--hyp); }
 
-  @media (max-width: 1080px) {
-    .columns { grid-template-columns: 160px 1fr; }
+  @media (max-width: 1100px) {
+    .columns { grid-template-columns: 200px 1fr; }
     .col-right { display: none; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .flywheel-ring, .diag-btn .radar { animation: none; }
-    .dot.live, .agent-name .lamp.on.working { animation: none; }
+    .dot.live { animation: none; }
   }
 </style>
 </head>
 <body>
 
-<!-- 品牌条 -->
 <header class="brandbar">
-  <div class="brand">
-    <div class="brand-mark"></div>
-    <div class="brand-name">Ops<em>Hive</em></div>
-  </div>
-  <span class="env-pill">DEV · zjsl-cluster-dev · 只读</span>
+  <div class="brand"><div class="brand-mark"></div><div class="brand-name">Ops<em>Hive</em></div></div>
+  <span class="env-pill">DEV · zjsl-cluster-dev</span>
   <div class="brandbar-right">
-    <a class="link" href="#">知识库</a>
-    <a class="link" href="#">Skill 市场</a>
-    <a class="link" href="#">文档</a>
+    <a class="link" href="#">知识库</a><a class="link" href="#">Skill 市场</a><a class="link" href="#">文档</a>
   </div>
 </header>
 
 <div class="layout">
-  <!-- 侧栏：事故房 -->
   <aside class="sidebar">
     <div class="side-label">活跃事故 · 4 间会议室</div>
     <a class="room p1 active" href="#">
-      <div class="room-top">
-        <span class="sev p1">P1</span>
-        <span class="state"><span class="dot live"></span>调查中</span>
-      </div>
+      <div class="room-top"><span class="sev p1">P1</span><span class="state"><span class="dot live"></span>仲裁中</span></div>
       <div class="room-title">payment-gateway 5xx 错误率飙升（>8%）</div>
-      <div class="room-fp">fp:9f2c7a1e5b3d8f04 · 13:50</div>
-      <div class="room-meta">IC 张倩 <span class="ai">AI×4 假设</span></div>
+      <div class="room-fp">inc_pay123 · fp:9f2c7a1e · 13:50</div>
+      <div class="room-meta">IC 张倩 <span class="ai">冲突 1 · 超时 9m</span></div>
     </a>
     <a class="room p1" href="#">
-      <div class="room-top">
-        <span class="sev p1">P1</span>
-        <span class="state"><span class="dot live"></span>调查中</span>
-      </div>
-      <div class="room-title">inference-hang-frontend · 在途请求 token 无增长</div>
-      <div class="room-fp">fp:3ce9399783a2 · 14:02</div>
-      <div class="room-meta">IC 张倩 <span class="ai">AI×4 假设</span></div>
+      <div class="room-top"><span class="sev p1">P1</span><span class="state"><span class="dot live"></span>调查中</span></div>
+      <div class="room-title">inference-hang-frontend · token 无增长</div>
+      <div class="room-fp">inc_hang01 · fp:3ce93997 · 14:02</div>
+      <div class="room-meta">IC 张倩 <span class="ai">AI×4</span></div>
     </a>
     <a class="room p2" href="#">
-      <div class="room-top">
-        <span class="sev p2">P2</span>
-        <span class="state"><span class="dot live"></span>调查中</span>
-      </div>
+      <div class="room-top"><span class="sev p2">P2</span><span class="state"><span class="dot live"></span>调查中</span></div>
       <div class="room-title">order-service 下游超时告警</div>
-      <div class="room-fp">fp:5273ce9fb8f2 · 14:41</div>
-      <div class="room-meta">IC 李霞 <span class="ai">AI×2 假设</span></div>
+      <div class="room-fp">inc_ord99 · fp:5273ce9f · 14:41</div>
+      <div class="room-meta">IC 李霞 <span class="ai">AI×2</span></div>
     </a>
     <a class="room p2" href="#">
-      <div class="room-top">
-        <span class="sev p2">P2</span>
-        <span class="state"><span class="dot idle"></span>候选</span>
-      </div>
-      <div class="room-title">SLO breach · SLA 低于配置目标</div>
-      <div class="room-fp">fp-slo-breach-prod · 15:12</div>
-      <div class="room-meta">IC — <span class="ai">AI×1 假设</span></div>
+      <div class="room-top"><span class="sev p2">P2</span><span class="state"><span class="dot idle"></span>候选</span></div>
+      <div class="room-title">SLO breach · SLA 低于目标</div>
+      <div class="room-fp">inc_slo01 · fp-slo · 15:12</div>
+      <div class="room-meta">IC —</div>
     </a>
   </aside>
 
-  <!-- 主区 -->
   <div class="main">
-    <!-- 事故顶栏 -->
+    <!-- 顶栏：状态 / 影响 / 止血 / 仲裁 -->
     <div class="incident-bar">
       <span class="inc-badge p1">P1</span>
-      <span class="inc-title">payment-gateway 5xx 错误率飙升（>8%）</span>
-      <span class="inc-state"><span class="dot live"></span>调查中</span>
-      <span class="inc-ic">IC <b>张倩</b></span>
+      <span class="inc-title">payment-gateway 5xx 错误率飙升</span>
+      <div class="kv"><span class="k">影响</span><span class="v bad">error budget 剩余 42m</span></div>
+      <div class="kv"><span class="k">止血</span><span class="v warn">无 · rollback 待批</span></div>
+      <div class="arbitrate"><span class="t">仲裁</span><span class="v">已超目标 9m → 升级值班经理</span></div>
       <nav class="nav">
-        <a class="on" href="#">会议室</a>
-        <a href="#">工作图</a>
-        <a href="#">证据血缘</a>
-        <a href="#">IC 操作</a>
+        <a class="on" href="#">会议室</a><a href="#">工作图</a><a href="#">证据血缘</a><a href="#">IC 操作</a>
       </nav>
-      <div class="flywheel-wrap">
-        <div class="flywheel">
-          <div class="flywheel-ring"></div>
-          <div>
-            <div class="flywheel-label">上下文飞轮</div>
-            <div class="flywheel-val">60% 收敛</div>
-          </div>
-        </div>
-        <div class="stat"><div class="stat-label">已确认事实</div><div class="stat-val ok">3</div></div>
-        <div class="stat"><div class="stat-label">未解问题</div><div class="stat-val warn">2</div></div>
-        <div class="stat"><div class="stat-label">去重率</div><div class="stat-val sky">50%</div></div>
-        <div class="stat"><div class="stat-label">决策延迟</div><div class="stat-val hyp">39m</div></div>
+      <div class="ctx-meta">
+        <span>ctx@v14</span><span>inc_pay123</span><span>agent 4 / 人类 1</span>
       </div>
     </div>
 
-    <!-- 三栏 -->
     <div class="columns">
-      <!-- 左：与会 Agent -->
+      <!-- 左：工作图（Agent 是节点属性） -->
       <div class="col col-left">
-        <div class="col-label">与会 Agent · 4</div>
-        <div class="agent on">
-          <div class="agent-role">EXPLORER · 探索</div>
-          <div class="agent-name"><span class="lamp on working"></span>agent-aliyun</div>
-          <div class="agent-work">在查 <b>2</b> 个工作单元 · 租约 active</div>
+        <div class="col-label">工作图 <span class="count">· 完成 2/5</span></div>
+        <div class="wg-node done">
+          <div class="wg-q">定位 5xx 错误源（实例/版本）</div>
+          <div class="wg-meta"><span class="agent">agent-aliyun</span> <span class="role">EXPLORER</span> <span class="budget">✅ 完成</span></div>
         </div>
-        <div class="agent on">
-          <div class="agent-role">VERIFIER · 验证</div>
-          <div class="agent-name"><span class="lamp on working"></span>agent-b</div>
-          <div class="agent-work">在查 <b>1</b> 个工作单元</div>
+        <div class="wg-edge"></div>
+        <div class="wg-node active">
+          <div class="wg-q">验证连接池变更是否根因</div>
+          <div class="wg-meta"><span class="agent">agent-b</span> <span class="role">VERIFIER</span> <span class="budget">预算 68%</span> <span class="lease">租约 14:32 到期</span></div>
         </div>
-        <div class="agent">
-          <div class="agent-role">SKEPTIC · 怀疑</div>
-          <div class="agent-name"><span class="lamp"></span>agent-c</div>
-          <div class="agent-work">空闲 · 待分配</div>
+        <div class="wg-edge"></div>
+        <div class="wg-node skeptic active">
+          <div class="wg-q">反证：网关重试放大假设</div>
+          <div class="wg-meta"><span class="agent">agent-c</span> <span class="role">SKEPTIC</span> <span class="budget">预算 40%</span> <span style="color:var(--warn)">自动生成</span></div>
         </div>
-        <div class="agent on">
-          <div class="agent-role">DIGITIZER · 数字员工</div>
-          <div class="agent-name"><span class="lamp on"></span>headless-diagnoser <span class="tag-ai">AI</span></div>
-          <div class="agent-work">已发言 4 次 · GLM-5.2</div>
+        <div class="wg-edge"></div>
+        <div class="wg-node">
+          <div class="wg-q">评估回滚窗口与风险</div>
+          <div class="wg-meta"><span class="agent">待认领</span> <span class="role">EXECUTOR</span> <span class="ai-tag">AI</span></div>
         </div>
+        <div class="wg-add">＋ 按故障域分配新工作单元</div>
       </div>
 
-      <!-- 中：协同诊断流 -->
+      <!-- 中：事实账本 + 盲区 + 冲突 + 下一动作 -->
       <div class="col col-mid">
-        <div class="col-label">协同诊断流 <span class="count">· 12 条发言</span></div>
-        <div class="stream">
-          <div class="stream-item">
-            <div class="stream-rail"><span class="stream-dot sky"></span></div>
-            <div class="stream-card">
-              <div class="stream-head"><span class="stream-tag sky">领取任务</span><span class="stream-actor">agent-aliyun</span><span class="stream-time">13:52</span></div>
-              <div class="stream-body">认领工作单元 <span class="ev-id">wn-1</span>：定位 5xx 错误源（实例/版本）</div>
+        <div class="col-label">事实账本 <span class="count">· 新增独立证据 3 · 关闭盲区 1</span></div>
+
+        <div class="ledger-item">
+          <div class="ledger-rail"><span class="ledger-dot sky"></span></div>
+          <div class="ledger-card evidence">
+            <div class="ledger-head">
+              <span class="ledger-tag ev">证据</span><span class="ledger-src">agent-aliyun · SLS 查询</span><span class="ledger-time">14:02</span>
+              <a class="why" href="#">为何</a>
             </div>
+            <div class="ledger-body">5xx 拐点 14:02，集中在 <span class="ref">payment-gateway-v2</span> · 独立性 <span class="indep">0.90</span></div>
           </div>
-          <div class="stream-item">
-            <div class="stream-rail"><span class="stream-dot sky"></span></div>
-            <div class="stream-card">
-              <div class="stream-head"><span class="stream-tag sky">提交证据</span><span class="stream-actor">agent-aliyun</span><span class="stream-time">14:02</span></div>
-              <div class="stream-body">5xx 拐点锁定 14:02，集中在 <span class="ev-id">payment-gateway-v2</span> · 独立性 <span class="num" style="color:var(--ok)">0.90</span></div>
+        </div>
+        <div class="ledger-item">
+          <div class="ledger-rail"><span class="ledger-dot ok"></span></div>
+          <div class="ledger-card fact">
+            <div class="ledger-head">
+              <span class="ledger-tag fact">事实</span><span class="ledger-src">IC 张倩 确认</span><span class="ledger-time">14:29</span>
+              <a class="why" href="#">为何</a>
             </div>
+            <div class="ledger-body">连接池 14:01 起饱和，与 5xx 拐点吻合（独立血缘 3：SLS + Prometheus + 变更审计）</div>
           </div>
-          <div class="stream-item">
-            <div class="stream-rail"><span class="stream-dot hyp"></span></div>
-            <div class="stream-card">
-              <div class="stream-head"><span class="stream-tag hyp">提出假设</span><span class="stream-actor">headless-diagnoser</span><span class="stream-time">14:18</span></div>
-              <div class="stream-body">sglang worker 内部死锁，GPU 计算线程无法推进 token 生成 · 置信度 <span class="conf">0.72</span></div>
-            </div>
-          </div>
-          <div class="stream-item">
-            <div class="stream-rail"><span class="stream-dot ok"></span></div>
-            <div class="stream-card">
-              <div class="stream-head"><span class="stream-tag ok">事实确认</span><span class="stream-actor">张倩（IC）</span><span class="stream-time">14:29</span></div>
-              <div class="stream-body">连接池 14:01 起饱和，与 5xx 拐点吻合 <span class="ev-id">fact-3</span></div>
-            </div>
-          </div>
-          <div class="stream-item">
-            <div class="stream-rail"><span class="stream-dot warn"></span></div>
-            <div class="stream-card">
-              <div class="stream-head"><span class="stream-tag warn">IC 指示</span><span class="stream-actor">张倩</span><span class="stream-time">14:32</span></div>
-              <div class="stream-body">优先验证 sglang 死锁假设；准备 rollback 预案（v2 → v1）</div>
-            </div>
-          </div>
+        </div>
+
+        <div class="conflict-box">
+          <span class="h">◆ 开放冲突 1</span>
+          <div style="margin-top:4px">假设 1「连接池配置回归」与假设 2「网关重试放大」在同一时间段都成立——等待 agent-c 反证结果，或进入仲裁。</div>
+        </div>
+
+        <div class="gap-box">
+          <span class="h">◇ 未知项 / 盲区</span>
+          <ul>
+            <li>v2 发布的<b style="color:var(--warn)">确切时间窗</b>（14:02 拐点 vs 发布记录 13:58 有 4min 缺口）</li>
+            <li>重试配置的<b style="color:var(--warn)">历史版本</b>（argocd 变更审计未查）</li>
+          </ul>
+        </div>
+
+        <div class="next-action">
+          <div class="h">▶ 下一最佳调查动作</div>
+          <div class="v">查询 argocd 变更历史，确认 DB_MAX_POOLS 与 v2 发布的确切时间</div>
+          <div class="who">建议 agent-aliyun 认领 · 预期信息增益高（可关闭盲区 2）</div>
         </div>
       </div>
 
-      <!-- 右：假设 + 行动 -->
+      <!-- 右：假设对比矩阵 + IC 决策队列 -->
       <div class="col col-right">
-        <div class="col-label">根因假设 · 按置信度</div>
-        <div class="hyp">
-          <div class="hyp-head"><span class="hyp-state sup">SUPPORTED</span><span class="num" style="color:var(--ok);font-size:10px">0.85</span></div>
-          <div class="hyp-title">连接池配置变更引入回归（DB_MAX_POOLS 100→50）</div>
-          <div class="hyp-bar"><div class="hyp-track"><div class="hyp-fill sup" style="width:85%"></div></div><span class="hyp-pct">85%</span></div>
-          <div class="hyp-meta"><span class="src-human">agent-aliyun</span> · 支撑 2 / 反证 0 · 14:44</div>
-        </div>
-        <div class="hyp">
-          <div class="hyp-head"><span class="hyp-state str">STRENGTHENING</span><span class="num" style="color:var(--hyp);font-size:10px">0.72</span><span class="conflict">冲突</span></div>
-          <div class="hyp-title">sglang worker 死锁 / GPU 计算卡死，请求堆积无 token</div>
-          <div class="hyp-bar"><div class="hyp-track"><div class="hyp-fill str" style="width:72%"></div></div><span class="hyp-pct">72%</span></div>
-          <div class="hyp-meta"><span class="src-ai">headless-diagnoser</span> · 支撑 1 / 反证 1 · 14:18</div>
-        </div>
-        <div class="hyp">
-          <div class="hyp-head"><span class="hyp-state str">PROPOSED</span><span class="num" style="color:var(--hyp);font-size:10px">0.45</span></div>
-          <div class="hyp-title">GPU 硬件异常 / 驱动层故障，CUDA 操作挂起</div>
-          <div class="hyp-bar"><div class="hyp-track"><div class="hyp-fill str" style="width:45%"></div></div><span class="hyp-pct">45%</span></div>
-          <div class="hyp-meta"><span class="src-ai">headless-diagnoser</span> · 14:18</div>
-        </div>
-        <div class="hyp">
-          <div class="hyp-head"><span class="hyp-state str">PROPOSED</span><span class="num" style="color:var(--hyp);font-size:10px">0.25</span></div>
-          <div class="hyp-title">KV cache 耗尽 / 内存碎片，无法分配计算资源</div>
-          <div class="hyp-bar"><div class="hyp-track"><div class="hyp-fill str" style="width:25%"></div></div><span class="hyp-pct">25%</span></div>
-          <div class="hyp-meta"><span class="src-ai">headless-diagnoser</span> · 14:18</div>
-        </div>
-        <div class="hyp refuted">
-          <div class="hyp-head"><span class="hyp-state ref">REFUTED</span><span class="num" style="color:var(--text-3);font-size:10px">0.15</span></div>
-          <div class="hyp-title">宿主机网络抖动（已被 node-17 资源平稳反证）</div>
-          <div class="hyp-bar"><div class="hyp-track"><div class="hyp-fill ref" style="width:15%"></div></div><span class="hyp-pct">15%</span></div>
-          <div class="hyp-meta"><span class="src-human">agent-c</span> · 反证 1 · 14:45</div>
-        </div>
+        <div class="col-label">假设对比矩阵</div>
+        <table class="hyp-matrix">
+          <tr><th>假设</th><th>独立证据域</th><th>反证</th><th>可证伪预测</th></tr>
+          <tr class="conflicted">
+            <td><span class="hs sup">SUPPORTED</span><span class="hs-name">连接池配置回归（DB_MAX_POOLS 100→50）</span><div class="weak">置信 0.85 · 弱元数据</div></td>
+            <td><span class="lineage-tag">3 lineage</span><div class="weak">SLS / Prom / 变更审计</div></td>
+            <td class="weak">0</td>
+            <td class="falsifier">回滚至 100 后 <b>15min 内</b> 5xx 回落</td>
+          </tr>
+          <tr class="conflicted">
+            <td><span class="hs conf">CONFLICTED</span><span class="hs-name">网关重试放大放大</span><div class="weak">置信 0.45</div></td>
+            <td><span class="lineage-tag">2 lineage</span><div class="weak">gateway 日志 / 链路</div></td>
+            <td class="weak">1（agent-c 反证中）</td>
+            <td class="falsifier">禁用重试后错误率<b>立即</b>下降</td>
+          </tr>
+          <tr class="refuted">
+            <td><span class="hs ref">REFUTED</span><span class="hs-name">宿主机网络抖动</span><div class="weak">置信 0.15</div></td>
+            <td class="weak">1 lineage</td>
+            <td class="weak">1（node-17 资源平稳）</td>
+            <td class="weak">—</td>
+          </tr>
+          <tr>
+            <td><span class="hs frz">FROZEN</span><span class="hs-name">DNS 解析异常</span><div class="weak">无新证据</div></td>
+            <td class="weak">0</td>
+            <td class="weak">0</td>
+            <td class="weak">重开需新证据（NO_NOVELTY）</td>
+          </tr>
+        </table>
 
-        <!-- 行动区 -->
-        <div class="actions">
-          <button class="diag-btn"><span class="radar"></span>AI 诊断中 · GLM-5.2 分析真实日志</button>
-          <div class="action-hint">headless-diagnoser 正在进场：读取 SLS 日志 → 生成假设 → 出现在右栏（约 1-3 分钟）</div>
-          <div class="ic-box">
-            <textarea class="ic-input" placeholder="给全部 agent 的指示（IC 发言）… 只有结构化证据与决策改变事故状态。"></textarea>
-            <button class="ic-send">发布 IC 指示</button>
+        <div class="ic-queue">
+          <div class="col-label">IC 决策队列</div>
+          <div class="ic-type-row">
+            <span class="ic-type sel">Guidance</span><span class="ic-type">事实确认</span><span class="ic-type">仲裁裁决</span><span class="ic-type">冻结话题</span><span class="ic-type">止血决策</span>
           </div>
-          <div class="boundary-note">AI 仅做根因定位与辅助分析；止血 / 修复方案由 IC 决策。</div>
+          <textarea class="ic-input" placeholder="指示 / 裁决 / 止血决策内容… 将写入：inc_pay123 ctx@v15"></textarea>
+          <div class="ic-preview">影响预览：3 个 agent 可见 · 不改变事实层 · 需要 0 个审批</div>
+          <button class="ic-send">发布 IC 决策</button>
+          <div class="permission-strip">
+            <span class="perm ro">资源只读</span><span class="perm rw">可提交 Guidance</span><span class="perm no">无生产执行权限</span>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- 底部状态条 -->
+    <!-- 底部抽屉：活动流（审计信息，降级） -->
+    <div class="drawer">
+      <span class="t">活动流 · 收起</span>
+      <span class="stat">协作纪要 <b>12</b> 条</span>
+      <span class="stat">新增独立证据 <b class="ok">3</b></span>
+      <span class="stat">去重查询 <b class="sky">2</b></span>
+      <span class="stat">关闭盲区 <b class="warn">1</b></span>
+      <span class="toggle">展开 ▴</span>
+    </div>
+
     <div class="statusbar">
-      <span class="ok">● 控制平面 200</span>
+      <span style="color:var(--ok)">● 控制平面 200</span>
       <span>OACP v0.1 · 事实层过滤开</span>
-      <span class="hyp">headless-diagnoser: GLM-5.2</span>
-      <span style="margin-left:auto">OpsHive v0.3 · 只读 · 凭证零入库</span>
+      <span>headless-diagnoser: GLM-5.2</span>
+      <span style="margin-left:auto">OpsHive v0.3 · 凭证零入库</span>
     </div>
   </div>
 </div>
 
-<!-- 样式注记 -->
 <div class="notes">
-  <h4>v2 样式要点</h4>
+  <h4>v3 指挥化改造（按 Codex 审查）</h4>
   <ul>
-    <li><span class="tag">左缘色条</span> 状态一眼可辨（P1 红 / P2 琥珀 / 活跃绿）</li>
-    <li><span class="tag">等宽数据语言</span> 指纹/时间/置信度用 mono，数据感</li>
-    <li><span class="tag">决策边界常驻</span> 琥珀提示 + 状态条"AI 只定位"</li>
-    <li><span class="tag">飞轮强化</span> 收敛进度动画化</li>
-    <li><span class="tag">AI 发言可见</span> 紫色 tag 区分 AI 与人工来源</li>
+    <li><span class="tag">信息架构</span> 左=工作图（agent 是节点属性）· 中=事实账本+盲区+冲突+下一动作 · 右=假设矩阵+IC 决策队列 · 活动流降级底部抽屉</li>
+    <li><span class="tag">串房防护</span> 常驻 inc_id/ctx@vN/环境；跨事故引用仅"历史候选"</li>
+    <li><span class="tag">假设矩阵</span> 状态+独立证据域+反证+可证伪预测；置信度降为弱元数据（防自动化偏误）</li>
+    <li><span class="tag">仲裁倒计时</span> "已超目标 9m → 升级值班经理"（决策延迟带语义）</li>
+    <li><span class="tag">权限三级</span> 资源只读 / 可提交 Guidance / 无生产执行权限</li>
+    <li><span class="tag">IC 决策类型化</span> Guidance/事实确认/仲裁裁决/冻结/止血 + 影响预览</li>
   </ul>
 </div>
 
