@@ -28,7 +28,7 @@ function Flywheel({ incidentId }: { incidentId: string }) {
         <div
           className="flywheel-spin h-7 w-7 rounded-full"
           style={{
-            background: `conic-gradient(#34d399 ${ratio * 360}deg, #3f3f46 ${ratio * 360}deg)`,
+            background: `conic-gradient(var(--ok) ${ratio * 360}deg, var(--tail-raise) ${ratio * 360}deg)`,
             mask: 'radial-gradient(circle, transparent 45%, black 46%)',
             WebkitMask: 'radial-gradient(circle, transparent 45%, black 46%)',
           }}
