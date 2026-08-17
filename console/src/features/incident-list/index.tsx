@@ -10,7 +10,7 @@ export function IncidentSidebar({ activeId }: { activeId: string }) {
     <aside className="flex w-64 shrink-0 flex-col border-r border-zinc-800 bg-zinc-900/40">
       <div className="border-b border-zinc-800 px-4 py-3">
         <div className="text-sm font-bold tracking-wide text-zinc-100">
-          OpsHive <span className="text-emerald-400">指挥室</span>
+          Hivemind <span className="text-emerald-400">指挥室</span>
         </div>
         <div className="mt-0.5 text-[10px] text-zinc-500">P0 · 只读协同账本</div>
       </div>

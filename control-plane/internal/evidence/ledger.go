@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ops-hive/control-plane/internal/iam"
+	"github.com/samson-samson/hivemind/control-plane/internal/iam"
 )
 
 // LedgerEntry 账本中的一条记录。

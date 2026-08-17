@@ -13,12 +13,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ops-hive/control-plane/internal/eventbus"
-	"github.com/ops-hive/control-plane/internal/evidence"
-	"github.com/ops-hive/control-plane/internal/iam"
-	"github.com/ops-hive/control-plane/internal/lease"
-	"github.com/ops-hive/control-plane/internal/querycoord"
-	"github.com/ops-hive/control-plane/internal/stats"
+	"github.com/samson-samson/hivemind/control-plane/internal/eventbus"
+	"github.com/samson-samson/hivemind/control-plane/internal/evidence"
+	"github.com/samson-samson/hivemind/control-plane/internal/iam"
+	"github.com/samson-samson/hivemind/control-plane/internal/lease"
+	"github.com/samson-samson/hivemind/control-plane/internal/querycoord"
+	"github.com/samson-samson/hivemind/control-plane/internal/stats"
 )
 
 // Service 控制平面服务：编排存储 / 查询协调 / 证据账本 / 租约 / 事件总线。

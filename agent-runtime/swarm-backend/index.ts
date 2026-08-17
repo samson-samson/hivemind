@@ -1,13 +1,13 @@
 /**
- * OpsHive Swarm Backend —— Agent Swarms 的可插拔后端之一。
+ * Hivemind Swarm Backend —— Agent Swarms 的可插拔后端之一。
  *
  * 作用：teammates（会议室里的 agents）真实执行（in-process/tmux），
- * 同时把 SendMessage + Mailbox 消息**镜像**到 OpsHive 控制平面：
+ * 同时把 SendMessage + Mailbox 消息**镜像**到 Hivemind 控制平面：
  *   - structured 消息 → IOM 节点（evidence/hypothesis/fact/guidance）
  *   - 纯文本消息 → 会议纪要（不进 IOM，聊天不进事实层）
  *
  * 对应 fork 的 backends registry（src/utils/swarm/backends/）：
- *   tmux / iterm2 / in-process / opshive ← 本实现
+ *   tmux / iterm2 / in-process / hivemind ← 本实现
  *
  * 部署形态：agent-runtime 与 claude-code fork 同机（或同网），
  * 订阅 mailbox 目录 + 透传 SendMessage 载荷。
@@ -121,7 +121,7 @@ export function watchMailbox(target: MirrorTarget, teamDir?: string): () => void
       const envelope = JSON.parse(raw) as OacpEnvelope;
       await mirrorToControlPlane(envelope, target);
     } catch (err) {
-      console.error('[opshive-backend] mirror failed:', err instanceof Error ? err.message : err);
+      console.error('[hivemind-backend] mirror failed:', err instanceof Error ? err.message : err);
     }
   });
   return () => watcher.close();

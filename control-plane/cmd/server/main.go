@@ -14,8 +14,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ops-hive/control-plane/internal/api"
-	"github.com/ops-hive/control-plane/internal/iam"
+	"github.com/samson-samson/hivemind/control-plane/internal/api"
+	"github.com/samson-samson/hivemind/control-plane/internal/iam"
 )
 
 func main() {
@@ -36,7 +36,7 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("OpsHive control-plane listening on %s (fresh_window=%s lease_ttl=%s)", addr, freshWindow, leaseTTL)
+		log.Printf("Hivemind control-plane listening on %s (fresh_window=%s lease_ttl=%s)", addr, freshWindow, leaseTTL)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("server error: %v", err)
 		}

@@ -3,7 +3,7 @@ package evidence
 import (
 	"fmt"
 
-	"github.com/ops-hive/control-plane/internal/iam"
+	"github.com/samson-samson/hivemind/control-plane/internal/iam"
 )
 
 // LineageGraph 血缘 DAG 视图：evidenceID -> 父证据 ID 集合。

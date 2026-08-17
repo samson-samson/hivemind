@@ -1,7 +1,7 @@
-# OpsHive（运维蜂巢）开发约定
+# Hivemind（运维蜂巢）开发约定
 
 > AIOps 多智能体故障协同平台。开源 · 云中立 · 阿里云第一实现。
-> **权威契约**：`docs/superpowers/specs/2026-08-12-opshive-design.md`（v2.1）
+> **权威契约**：`docs/superpowers/specs/2026-08-12-hivemind-design.md`（v2.1）
 
 ## 实现分工（模型路由，经 zenmux.ai gateway）
 

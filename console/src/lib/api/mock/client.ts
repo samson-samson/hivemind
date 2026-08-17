@@ -1,4 +1,4 @@
-import type { OpsHiveApi } from '../client';
+import type { HivemindApi } from '../client';
 import type {
   ContextPack,
   CreateGuidanceInput,
@@ -91,7 +91,7 @@ const mustIncident = (id: ID): Incident => {
 let idCounter = 1000;
 const nextId = (prefix: string) => `${prefix}-local-${idCounter++}`;
 
-export const mockApi: OpsHiveApi = {
+export const mockApi: HivemindApi = {
   listIncidents: () => delay(state.incidents),
   getIncident: (id) => delay(mustIncident(id)),
 

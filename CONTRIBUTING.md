@@ -1,6 +1,6 @@
 # 贡献指南（CONTRIBUTING）
 
-欢迎为 OpsHive 贡献代码、文档、pack 与经验。本项目是**开源 + 参考实现**，云中立，阿里云为第一实现。
+欢迎为 Hivemind 贡献代码、文档、pack 与经验。本项目是**开源 + 参考实现**，云中立，阿里云为第一实现。
 
 ## 三方模型分工（本项目的协作方式）
 
@@ -27,7 +27,7 @@ cd headless-agent && python3 diagnose.py --list
 
 ## 提 PR 前
 
-1. **读设计文档**：`docs/superpowers/specs/2026-08-12-opshive-design.md`（权威契约）。
+1. **读设计文档**：`docs/superpowers/specs/2026-08-12-hivemind-design.md`（权威契约）。
 2. **跑两端验证**：`go build/vet/test` + `npm run build` 全绿。
 3. **遵守四条铁律**（见 CLAUDE.md）：排障不是互斥写入；发生过≠可复用；不造 agent 引擎；写操作永远人审。
 4. **凭证纪律**：任何 AK/SK、token、密钥**不得**进入仓库。用 `.env.example` 声明，真值走环境变量。

@@ -1,6 +1,6 @@
 # P0 前端实施简报（moonshotai/kimi-k3）
 
-> 角色：前端编码 · 模型：`moonshotai/kimi-k3` · 契约：`docs/superpowers/specs/2026-08-12-opshive-design.md`（v2.1）
+> 角色：前端编码 · 模型：`moonshotai/kimi-k3` · 契约：`docs/superpowers/specs/2026-08-12-hivemind-design.md`（v2.1）
 > **开工前必读**：设计文档 §3（架构）/ §6（MCP 接入，了解信息源）/ §7（指挥室）。本简报自包含 P0 范围。
 > **后端数据契约**：`docs/implementation/P0-backend-brief.md` §5（API 契约）——**以 control-plane 的 `api/openapi.yaml` 为准，不要臆造接口**。
 

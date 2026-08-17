@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/ops-hive/control-plane/internal/iam"
+	"github.com/samson-samson/hivemind/control-plane/internal/iam"
 )
 
 type ingestAlertRequest struct {

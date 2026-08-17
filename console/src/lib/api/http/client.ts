@@ -1,5 +1,5 @@
 /**
- * 真实后端 HTTP 适配器 —— 实现 OpsHiveApi 接口（契约见 client.ts）。
+ * 真实后端 HTTP 适配器 —— 实现 HivemindApi 接口（契约见 client.ts）。
  *
  * 后端 Go control-plane 返回 snake_case 扁平字段，与前端视图类型存在
  * 少量命名/形态差异，本文件内的 normalize 函数负责确定性翻译
@@ -25,7 +25,7 @@ import type {
   Operation,
   WorkNode,
 } from '../types';
-import type { OpsHiveApi } from '../client';
+import type { HivemindApi } from '../client';
 
 const BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8081';
 
@@ -262,7 +262,7 @@ function normStats(b: BackendStats): IncidentStats {
 
 // ---------- HTTP 适配器 ----------
 
-export class HttpOpsHiveApi implements OpsHiveApi {
+export class HttpHivemindApi implements HivemindApi {
   private sseSeq = 0;
   private eventSources = new Map<ID, EventSource>();
 
@@ -334,7 +334,7 @@ export class HttpOpsHiveApi implements OpsHiveApi {
   // IC 拖拽布局：前端辅助，客户端本地化（localStorage），不占后端。
   async saveWorkGraphLayout(id: ID, positions: Record<ID, { x: number; y: number }>): Promise<void> {
     try {
-      localStorage.setItem(`opshive.layout.${id}`, JSON.stringify(positions));
+      localStorage.setItem(`hivemind.layout.${id}`, JSON.stringify(positions));
     } catch {
       /* 隐私模式等场景静默失败 */
     }

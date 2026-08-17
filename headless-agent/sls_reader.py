@@ -1,4 +1,4 @@
-"""SLS 只读数据采集（OpsHive headless-agent）。
+"""SLS 只读数据采集（Hivemind headless-agent）。
 
 通过本机 aliyun CLI（已配置 AK/SK）执行只读查询：
   - 事故记录（itsm_incident_record_log）

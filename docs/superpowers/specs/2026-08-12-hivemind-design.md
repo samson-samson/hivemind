@@ -1,4 +1,4 @@
-# OpsHive（运维蜂巢）设计方案
+# Hivemind（运维蜂巢）设计方案
 
 > 日期：2026-08-12 · 版本：v3（+Agent Swarms 内部通信 + 开源化）· 状态：已获批准（方案 B · Go+Python+TS · 中文优先 · 开源）
 > 定位：开源项目 + 参考实现，云中立，**阿里云为第一实现**。
@@ -436,7 +436,7 @@ capability:
 |---|---|---|
 | **A. MCP 快速接入** | Claude Code / Codex 等 MCP client | 薄适配器：`check_in / work_claim / push_evidence / propose / get_context`，最低门槛 |
 | **B. OACP SDK 原生接入** | 自研 agent | Go/Python/TS SDK：schema/版本校验 · workload identity 签名 · 幂等 · context@vN diff · lease 心跳 · retry/背压/断线续传；Evidence/Hypothesis/Proposal/Decision 各自正式 schema（不再塞进 content） |
-| **C. Swarm backend 深度接入** | 使用 Agent Swarms 的团队 | `opshive` backend 镜像 mailbox/worker 生命周期/coordinator 事件；只是 runtime adapter，不是公共协议前提 |
+| **C. Swarm backend 深度接入** | 使用 Agent Swarms 的团队 | `hivemind` backend 镜像 mailbox/worker 生命周期/coordinator 事件；只是 runtime adapter，不是公共协议前提 |
 
 三路径统一过 **Agent Conformance Suite**：structured/unstructured 隔离 · incident 越权 · 伪造 IC · 重复请求 · 租约过期/晚到证据 · context 版本冲突 · 断连恢复 · 预算与冻结语义。
 
@@ -449,7 +449,7 @@ capability:
 - **发布流水线**：`draft → static/policy scan → replay → sandbox → canary → owner review → certified → revoked`；一次生产事故成功不能自动 certified。
 - **市场排序不用下载量/五星**，用：conformance 通过率 · 适用事故覆盖 · replay/canary 成功率 · 误修复率/回滚率 · 最近验证版本 · 已知反例数 · 维护响应时间。
 - **贡献阶梯**（低门槛→高价值）：修正文档/资源映射 → 提交脱敏故障轨迹/反例 → 只读 query capability → runbook → dry-run action → 完整 platform pack。
-- **低门槛设施**：`opshive init connector|skill|runbook` 脚手架 · 本地模拟控制平面与假云 · 公共脱敏 incident replay 数据集 · PR 自动跑 conformance 并输出人读失败原因 · 不要求贡献者提供真实云凭证。
+- **低门槛设施**：`hivemind init connector|skill|runbook` 脚手架 · 本地模拟控制平面与假云 · 公共脱敏 incident replay 数据集 · PR 自动跑 conformance 并输出人读失败原因 · 不要求贡献者提供真实云凭证。
 - **激励**：缺失 capability 与真实失败案例 bounty · replay/canary 后发放 credits · 按验证质量计算的公开 reputation · 高信誉者获 maintainer 权限 · 发现安全缺陷/反例/撤销理由同样奖励 · **奖励延迟到验证完成**，严重误修复降信誉（防刷包）。
 
 **十个最容易做错**（评审结论）：把 MCP 当多智能体协议（MCP 解决工具调用，不解决事实/仲裁/租约/终止）· 把 OACP 绑定到本地 mailbox 或单一 runtime · 允许客户端自称 FromIC/自写 Fact · 用 agent 数或多数票代替独立证据 · 市场做成无沙箱/无权限负测试/无紧急撤销的代码商店 · 以下载量奖励高风险自动化 · 一次成功执行认证为 runbook · 把 `rollback:true` 当事实不验证 · 共享轨迹泄露租户拓扑/命名 · 宣称 Tier3 边际成本趋零（成本只会转移不会消失）。
@@ -463,7 +463,7 @@ capability:
 ## 12. 仓库结构与分期路线图
 
 ```
-ops-hive/
+hivemind/
 ├── control-plane/    # Go：IOM、工作图、查询协调、证据总线、护栏、安全
 ├── distiller/        # Python：候选蒸馏、认证流水线、知识图谱、RAG
 ├── adapter/          # MCP 适配器「发言人」+ 各 agent 接入示例
@@ -502,7 +502,7 @@ ops-hive/
 **负向指标**（必须跟踪，防止指标失真）：
 - 误根因率 · 误修复率 · 漏报率 · 审批质量（疲劳/信息不足）· 知识污染率（错误 runbook 被采纳的比例）。
 
-**评测机制**：离线评测集 + **shadow mode**（只观察不执行）+ 对照组（共享 Slack + 人工 IC vs OpsHive），满足上线门槛才放量。
+**评测机制**：离线评测集 + **shadow mode**（只观察不执行）+ 对照组（共享 Slack + 人工 IC vs Hivemind），满足上线门槛才放量。
 
 ---
 

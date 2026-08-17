@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ops-hive/control-plane/internal/iam"
+	"github.com/samson-samson/hivemind/control-plane/internal/iam"
 )
 
 func baseSpec() iam.QuerySpec {

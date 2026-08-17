@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ops-hive/control-plane/internal/iam"
+	"github.com/samson-samson/hivemind/control-plane/internal/iam"
 )
 
 // FingerprintVersion 指纹算法版本。算法演进时递增，避免跨版本误合并。

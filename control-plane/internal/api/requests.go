@@ -3,7 +3,7 @@ package api
 import (
 	"time"
 
-	"github.com/ops-hive/control-plane/internal/iam"
+	"github.com/samson-samson/hivemind/control-plane/internal/iam"
 )
 
 // ---- 请求体 ----

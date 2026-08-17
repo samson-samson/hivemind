@@ -1,4 +1,4 @@
-# OpsHive（运维蜂巢）
+# Hivemind（运维蜂巢）
 
 AIOps 多智能体故障协同平台：把 N 个工程师本地的 Claude Code / Codex 变成"一个互相感知、去重、持续蒸馏、可视化指挥的分布式排障大脑"。
 
@@ -7,7 +7,7 @@ AIOps 多智能体故障协同平台：把 N 个工程师本地的 Claude Code /
 - **云中立，阿里云为第一实现**（SLS/ARMS/ACK/ChaosBlade）。
 - **开源项目 + 参考实现**。
 
-> 设计文档（权威契约）：`docs/superpowers/specs/2026-08-12-opshive-design.md`
+> 设计文档（权威契约）：`docs/superpowers/specs/2026-08-12-hivemind-design.md`
 > 开发约定与模型分工：`CLAUDE.md`
 
 ## 目录

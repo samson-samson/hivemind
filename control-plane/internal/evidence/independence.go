@@ -1,7 +1,7 @@
 package evidence
 
 import (
-	"github.com/ops-hive/control-plane/internal/iam"
+	"github.com/samson-samson/hivemind/control-plane/internal/iam"
 )
 
 // 独立性评分（防从众）：按采集链路 / 权限域 / 底层数据源计算，不按 agent 数。

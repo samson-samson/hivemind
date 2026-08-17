@@ -1,11 +1,11 @@
-# OACP — OpsHive Agent Communication Protocol
+# OACP — Hivemind Agent Communication Protocol
 
-> 版本：v0.1（草案）· 状态：Draft · 定位：OpsHive 内部多智能体通信的**事实层协议**
+> 版本：v0.1（草案）· 状态：Draft · 定位：Hivemind 内部多智能体通信的**事实层协议**
 > 运行时底座：Agent Swarms（[samson-samson/claude-code](../../docs/references/agent-swarms.md)）
 
 ## 1. 目标与原则
 
-OpsHive 的"会议室"里，多个 agent（探索者/验证者/怀疑者/执行者/诊断器）需要有序协同。
+Hivemind 的"会议室"里，多个 agent（探索者/验证者/怀疑者/执行者/诊断器）需要有序协同。
 通信机制**复用 Agent Swarms 原生实现**（SendMessage + 文件信箱 + Coordinator），
 OACP 定义的是**消息在事实层（IOM）之上的语义**。
 
@@ -64,7 +64,7 @@ OACP 定义的是**消息在事实层（IOM）之上的语义**。
 | `SendMessageTool`（teammate/`*`/`uds:`/`bridge:`） | 消息传输层 |
 | Teammate Mailbox（`~/.claude/teams/{team}/inboxes/{agent}.json`） | 离线/异步投递 + 控制平面订阅点 |
 | Coordinator Mode（`CLAUDE_CODE_COORDINATOR_MODE`） | Lead 创建/销毁 workers |
-| Backends（tmux/iterm2/in-process/**opshive**） | 执行环境；`opshive` 后端把消息镜像到控制平面 |
+| Backends（tmux/iterm2/in-process/**hivemind**） | 执行环境；`hivemind` 后端把消息镜像到控制平面 |
 
 ## 5. 事实层过滤（控制平面侧）
 

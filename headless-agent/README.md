@@ -1,4 +1,4 @@
-# OpsHive headless-agent（智能诊断）
+# Hivemind headless-agent（智能诊断）
 
 平台自带的"数字员工"：只读采集阿里云 SLS 数据 → LLM 智能诊断 → 结构化报告。
 
@@ -42,4 +42,4 @@ python3 diagnose.py --report /tmp/r.md  # 输出 markdown + json
 ## 案例（2026-08-13 实测）
 
 真实事故：`litellm` Deployment 2 副本 16 分钟不可用（12 次告警）。
-诊断结论（GLM-5.2）：① CrashLoopBackOff 0.55 —— OTel 日志导出 gRPC Unimplemented 错误若未容错可能致崩溃；② 资源不足 0.30；③ 镜像/配置 0.20。排除了跨集群 GPU 告警的误关联（反幻觉验证）。建议 verify 优先级行动 + 分级修复。完整报告见 `/tmp/opshive-diagnosis.md`。
+诊断结论（GLM-5.2）：① CrashLoopBackOff 0.55 —— OTel 日志导出 gRPC Unimplemented 错误若未容错可能致崩溃；② 资源不足 0.30；③ 镜像/配置 0.20。排除了跨集群 GPU 告警的误关联（反幻觉验证）。建议 verify 优先级行动 + 分级修复。完整报告见 `/tmp/hivemind-diagnosis.md`。

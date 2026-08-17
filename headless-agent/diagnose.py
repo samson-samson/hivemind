@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""OpsHive 智能诊断入口（headless-agent）。
+"""Hivemind 智能诊断入口（headless-agent）。
 
 完整流程：真实事故（SLS itsm）→ 只读采集上下文 → LLM 诊断（hermes 配置）→ 报告。
 
@@ -57,7 +57,7 @@ def fmt_report(result: dict) -> str:
 
 
 def push_to_platform(cp_base: str, incident_id: str, result: dict) -> list[str]:
-    """把诊断结果写入 OpsHive 控制平面 IOM：每个假设成为一条 Hypothesis 发言。
+    """把诊断结果写入 Hivemind 控制平面 IOM：每个假设成为一条 Hypothesis 发言。
 
     语义：headless-diagnoser 作为"数字员工"，通过「发言人」协议提交提案；
     会议室右侧假设面板与协同诊断流会实时出现这些发言。
@@ -86,7 +86,7 @@ def push_to_platform(cp_base: str, incident_id: str, result: dict) -> list[str]:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="OpsHive 智能诊断（只读）")
+    ap = argparse.ArgumentParser(description="Hivemind 智能诊断（只读）")
     ap.add_argument("--index", type=int, default=0, help="诊断第几条事故（按时间倒序，默认最近一条）")
     ap.add_argument("--hours", type=int, default=168, help="采集时间窗（小时）")
     ap.add_argument("--report", type=str, default="", help="报告输出路径（默认 stdout）")

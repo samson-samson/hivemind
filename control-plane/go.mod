@@ -1,3 +1,3 @@
-module github.com/ops-hive/control-plane
+module github.com/samson-samson/hivemind/control-plane
 
 go 1.23

@@ -1,7 +1,7 @@
 /**
  * OACP v0.1 消息信封类型定义。
  *
- * OpsHive Agent Communication Protocol —— 事实层协议：
+ * Hivemind Agent Communication Protocol —— 事实层协议：
  * 只有 structured=true 的消息才会写入 IOM（证据总线），
  * 纯文本消息仅进入会议纪要，不改变事故状态。
  *

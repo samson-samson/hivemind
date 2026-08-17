@@ -1,6 +1,6 @@
 # P0 后端实施简报（deepseek-v4-flash）
 
-> 角色：后端编码 · 模型：`deepseek/deepseek-v4-flash` · 契约：`docs/superpowers/specs/2026-08-12-opshive-design.md`（v2.1）
+> 角色：后端编码 · 模型：`deepseek/deepseek-v4-flash` · 契约：`docs/superpowers/specs/2026-08-12-hivemind-design.md`（v2.1）
 > **开工前必读**：设计文档 §3（架构）/ §4（IOM）/ §5（协议）/ §10（阿里云映射）。本简报自包含 P0 范围。
 
 ## 0. P0 定位：只读协同账本

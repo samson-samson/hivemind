@@ -50,7 +50,7 @@ def diagnose(incident_context: dict) -> dict:
 
     只做只读分析与建议；不产生任何写操作。
     """
-    sys_prompt = """你是 OpsHive 的资深 SRE 排障专家（Agentic AIOps）。
+    sys_prompt = """你是 Hivemind 的资深 SRE 排障专家（Agentic AIOps）。
 你会收到一条线上事故的真实上下文（事故记录、关联告警、相关错误日志）。
 请完成智能诊断，输出严格 JSON（不要任何 markdown 包裹），结构：
 {

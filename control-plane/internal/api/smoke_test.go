@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ops-hive/control-plane/internal/iam"
-	"github.com/ops-hive/control-plane/internal/stats"
+	"github.com/samson-samson/hivemind/control-plane/internal/iam"
+	"github.com/samson-samson/hivemind/control-plane/internal/stats"
 )
 
 // 冒烟测试：创建事故 → 查列表 → 登记两条相同指纹 operation → 第二条被

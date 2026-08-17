@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ops-hive/control-plane/internal/iam"
+	"github.com/samson-samson/hivemind/control-plane/internal/iam"
 )
 
 // Status 租约状态。

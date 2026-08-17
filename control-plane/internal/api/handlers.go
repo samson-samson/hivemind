@@ -4,9 +4,9 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/ops-hive/control-plane/internal/evidence"
-	"github.com/ops-hive/control-plane/internal/iam"
-	"github.com/ops-hive/control-plane/internal/lease"
+	"github.com/samson-samson/hivemind/control-plane/internal/evidence"
+	"github.com/samson-samson/hivemind/control-plane/internal/iam"
+	"github.com/samson-samson/hivemind/control-plane/internal/lease"
 )
 
 // mapError 将存储层错误映射为 HTTP 状态码。

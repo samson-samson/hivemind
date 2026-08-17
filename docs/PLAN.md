@@ -1,4 +1,4 @@
-# OpsHive 产品方案 PLAN
+# Hivemind 产品方案 PLAN
 
 > 版本：2026-08-17 · 定位：开源 AIOps 平台（多智能体协同排障）· 状态：P0 大部完成
 
@@ -82,7 +82,7 @@
 
 ## 5. 能解决什么问题（Problems Solved）
 
-| 痛点 | 现状（无 OpsHive） | OpsHive 解决 |
+| 痛点 | 现状（无 Hivemind） | Hivemind 解决 |
 |---|---|---|
 | 重复排障 | 10 人 10 agent 跑同一批命令 | 查询级 single-flight + 会议室可见 |
 | 冷启动 | 每起事故从头查 | 指纹召回 + 知识蒸馏 |

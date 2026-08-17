@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ops-hive/control-plane/internal/iam"
+	"github.com/samson-samson/hivemind/control-plane/internal/iam"
 )
 
 // Flight 代表一次正在处理（或已完成）的"同指纹查询执行"。

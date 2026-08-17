@@ -40,7 +40,7 @@ import type {
  * P0 由 mock 适配器实现；后端就绪后以 openapi-typescript 生成的 client
  * 实现同一接口，一处替换即可。
  */
-export interface OpsHiveApi {
+export interface HivemindApi {
   // 事故
   listIncidents(): Promise<Incident[]>;
   getIncident(id: ID): Promise<Incident>;
