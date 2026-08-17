@@ -440,6 +440,25 @@ func (s *Service) handlePostHypothesis(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "topic is required")
 		return
 	}
+	// 分叉校验（§5.8）：同 subsystem + 同 causal_mechanism 的假设视为
+	// "验证副本"而非新探索分支——返回 409 并指向已有假设。
+	if req.Subsystem != "" || req.CausalMechanism != "" {
+		existing, _ := s.store.ListHypotheses(r.Context(), incidentID)
+		for _, e := range existing {
+			if e.Status == iam.HypothesisFrozen {
+				continue // 冻结话题不参与分叉去重（重开需新证据）
+			}
+			if e.Subsystem == req.Subsystem && e.CausalMechanism == req.CausalMechanism &&
+				e.Subsystem != "" && e.CausalMechanism != "" {
+				writeJSON(w, http.StatusConflict, map[string]any{
+					"error":      "duplicate branch: same subsystem + causal mechanism (验证副本，非新分支)",
+					"existing":   e.ID,
+					"new_topic":  req.Topic,
+				})
+				return
+			}
+		}
+	}
 	// 独立性权重：支持证据链的总独立信号（按数据源去重）。
 	all, _ := s.store.ListEvidence(r.Context(), incidentID)
 	supportEvs := make([]*iam.Evidence, 0, len(req.Supporting))
@@ -464,6 +483,9 @@ func (s *Service) handlePostHypothesis(w http.ResponseWriter, r *http.Request) {
 		IndependenceWeight: evidence.ChainIndependence(supportEvs),
 		Confidence:         req.Confidence,
 		Status:             iam.HypothesisProposed,
+		Subsystem:          req.Subsystem,
+		CausalMechanism:    req.CausalMechanism,
+		Falsifier:          req.Falsifier,
 	}
 	if len(req.Refuting) > 0 {
 		h.Status = iam.HypothesisRefuted

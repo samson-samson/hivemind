@@ -107,6 +107,9 @@ const (
 	HypothesisSupported HypothesisStatus = "supported"
 	HypothesisRefuted   HypothesisStatus = "refuted"
 	HypothesisConfirmed HypothesisStatus = "confirmed"
+	// HypothesisFrozen 话题冻结（§5.9）：无新证据即冻结；重开需
+	// reopen_reason + new_evidence_ref + context_version。
+	HypothesisFrozen HypothesisStatus = "frozen"
 )
 
 // ---- 公共字段 ----
@@ -225,6 +228,10 @@ type Hypothesis struct {
 	IndependenceWeight float64          `json:"independence_weight"`  // 血缘独立性权重
 	Confidence         float64          `json:"confidence"`           // 置信度 0..1
 	Status             HypothesisStatus `json:"status"`               // 状态
+	// ---- 分叉签名（§5.8）：决定"新假设 vs 验证副本" ----
+	Subsystem       string `json:"subsystem,omitempty"`        // 受影响子系统
+	CausalMechanism string `json:"causal_mechanism,omitempty"` // 因果机制
+	Falsifier       string `json:"falsifier,omitempty"`        // 可证伪预测（必须能单点推翻）
 }
 
 // Guidance 人的指示（IC 发言），不要求 agent 回复。

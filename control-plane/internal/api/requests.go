@@ -70,11 +70,14 @@ type postFactRequest struct {
 }
 
 type postHypothesisRequest struct {
-	Topic      string   `json:"topic"`
-	Supporting []string `json:"supporting,omitempty"`
-	Refuting   []string `json:"refuting,omitempty"`
-	Confidence float64  `json:"confidence,omitempty"`
-	Source     string   `json:"source,omitempty"`
+	Topic            string   `json:"topic"`
+	Supporting       []string `json:"supporting,omitempty"`
+	Refuting         []string `json:"refuting,omitempty"`
+	Confidence       float64  `json:"confidence,omitempty"`
+	Subsystem        string   `json:"subsystem,omitempty"`         // 分叉签名
+	CausalMechanism  string   `json:"causal_mechanism,omitempty"`  // 分叉签名
+	Falsifier        string   `json:"falsifier,omitempty"`         // 可证伪预测
+	Source           string   `json:"source,omitempty"`
 }
 
 // ---- 响应体 ----
