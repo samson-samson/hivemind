@@ -41,7 +41,8 @@ type Service struct {
 // NewService 组装各组件并返回服务。freshWindow 为查询结果新鲜度窗口，
 // leaseTTL 为租约心跳超时；传 0 使用默认值。
 func NewService(store iam.Store, freshWindow, leaseTTL time.Duration) *Service {
-	initAuth() // 加载 API key 映射（安全基线）
+	initAuth()          // 加载 API key 映射（安全基线）
+	initActionRegistry() // 加载 typed action 定义（护栏）
 	if freshWindow == 0 {
 		freshWindow = 5 * time.Minute
 	}
@@ -134,6 +135,10 @@ func (s *Service) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/incidents/{id}/runbooks", s.handleListRunbooks)
 	mux.HandleFunc("PATCH /api/v1/runbooks/{rid}", s.handleUpdateRunbook)
 	mux.HandleFunc("GET /api/v1/incidents/{id}/knowledge", s.handleListKnowledge)
+
+	// 恢复闭环（typed action + IC 审批 + 护栏执行）
+	mux.HandleFunc("POST /api/v1/incidents/{id}/actions", s.handleCreateAction)
+	mux.HandleFunc("POST /api/v1/incidents/{id}/actions/{aid}/execute", s.handleExecuteAction)
 
 	// AI 诊断（触发 headless-diagnoser 进场）
 	mux.HandleFunc("POST /api/v1/incidents/{id}/diagnose", s.handleDiagnose)

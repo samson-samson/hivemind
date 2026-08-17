@@ -24,6 +24,7 @@ const (
 	NodeHypothesis NodeType = "hypothesis"
 	NodeGuidance   NodeType = "guidance"
 	NodeRunbook    NodeType = "runbook"
+	NodeAction     NodeType = "action"
 )
 
 // ---- 边类型 ----
@@ -279,4 +280,25 @@ const (
 	RunbookVerified  RunbookStatus = "verified"
 	RunbookCertified RunbookStatus = "certified"
 	RunbookRevoked   RunbookStatus = "revoked"
+)
+
+// Action 修复/止血动作（§5.3 强类型动作最小版）。
+type Action struct {
+	NodeBase
+	IncidentID  string       `json:"incident_id"`           // 归属事故
+	Type        string       `json:"type"`                  // typed action 类型（env 定义）
+	Status      ActionStatus `json:"status"`                // proposed→approved→executed
+	ApprovedBy  string       `json:"approved_by,omitempty"` // IC（认证用户）
+	Result      string       `json:"result,omitempty"`      // 执行结果摘要
+	DryRun      bool         `json:"dry_run"`               // 护栏：默认 dry-run
+}
+
+// ActionStatus 动作生命周期。
+type ActionStatus string
+
+const (
+	ActionProposed ActionStatus = "proposed"
+	ActionApproved ActionStatus = "approved"
+	ActionExecuted ActionStatus = "executed"
+	ActionRejected ActionStatus = "rejected"
 )

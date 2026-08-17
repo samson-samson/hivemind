@@ -54,6 +54,11 @@ type Store interface {
 	ListAllRunbooks(ctx context.Context) ([]*Runbook, error)
 	UpdateRunbook(ctx context.Context, rb *Runbook) error
 
+	// ---- Action ----
+	AddAction(ctx context.Context, incidentID string, a *Action) error
+	ListActions(ctx context.Context, incidentID string) ([]*Action, error)
+	UpdateAction(ctx context.Context, a *Action) error
+
 	// ---- Edge ----
 	AddEdge(ctx context.Context, e *Edge) error
 	ListEdges(ctx context.Context, incidentID string) ([]*Edge, error)
@@ -72,6 +77,7 @@ type MemoryStore struct {
 	hypotheses map[string]*Hypothesis
 	guidance   map[string]*Guidance
 	runbooks   map[string]*Runbook
+	actions    map[string]*Action
 	edges      map[string]*Edge
 
 	// 按事故作用域索引（incidentID -> 节点 ID 列表）
@@ -97,6 +103,7 @@ func NewMemoryStore() *MemoryStore {
 		hypotheses:    make(map[string]*Hypothesis),
 		guidance:      make(map[string]*Guidance),
 		runbooks:      make(map[string]*Runbook),
+		actions:       make(map[string]*Action),
 		edges:         make(map[string]*Edge),
 		incWorkNodes:  make(map[string][]string),
 		incOperations: make(map[string][]string),
@@ -428,5 +435,40 @@ func (m *MemoryStore) UpdateRunbook(_ context.Context, rb *Runbook) error {
 		return &NotFoundError{Kind: "runbook", ID: rb.ID}
 	}
 	m.runbooks[rb.ID] = rb
+	return nil
+}
+
+// ---- Action ----
+
+func (m *MemoryStore) AddAction(_ context.Context, incidentID string, a *Action) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if err := m.requireIncident(incidentID); err != nil {
+		return err
+	}
+	a.IncidentID = incidentID
+	m.actions[a.ID] = a
+	return nil
+}
+
+func (m *MemoryStore) ListActions(_ context.Context, incidentID string) ([]*Action, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	out := make([]*Action, 0)
+	for _, a := range m.actions {
+		if a.IncidentID == incidentID {
+			out = append(out, a)
+		}
+	}
+	return out, nil
+}
+
+func (m *MemoryStore) UpdateAction(_ context.Context, a *Action) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if _, ok := m.actions[a.ID]; !ok {
+		return &NotFoundError{Kind: "action", ID: a.ID}
+	}
+	m.actions[a.ID] = a
 	return nil
 }
