@@ -206,7 +206,45 @@ T3 原始轨迹/案例库（证据所得）——append-only 账本，T1/T2 的 
 - **供应链治理**：skill pack **签名、锁版本、生成 SBOM、支持紧急撤销**；来源：平台内置 / 团队共享 / agent 自带，统一 manifest 声明 `requires_lease / permissions / safety_level`。
 - **知识→技能闭环**（系统飞轮）：认证 runbook → 自动生成配套 skill 微包 → 下次命中同一 runbook 的 agent 自带全套工具直接执行。**知识生产能力，能力再生产知识。**
 
-### 5.8 模型无关与成本路由
+### 5.8 分叉与多样性机制（防从众探索）
+
+**Hypothesis Signature**（每个新探索假设必填）：`{受影响子系统, 因果机制, 时间窗, 数据源血缘, 可证伪预测, 反证器}`。新假设与已有假设计算加权距离 D（子系统 0.25 / 机制 0.25 / 时间窗 0.15 / 血缘 0.20 / 反证器 0.15）；`min(D) < δ` → 只能登记"验证副本"，不能开新探索分支。
+
+配套机制：
+- **盲提阶段**：探索者先提交 signature 与可证伪预测，再开放交叉阅读（防先入为主）；
+- **工作图配额**：按故障域（应用/依赖/基础设施/变更/安全/容量）分槽，每槽至少一个分支，高风险槽强制反证任务；
+- **预算分桶**：60% 探索 / 25% 头部假设反证 / 15% 新证据触发重新分叉——禁止把预算全投给领先假设；
+- **对抗角色自动化**：首个 SUPPORTED 出现即自动生成 Skeptic 节点，目标单点推翻；
+- **覆盖度量**：`coverage = Σ(盲区风险权重×独立调查计划)/Σ盲区风险权重`，显示 lineage/mechanism/falsifier 三维覆盖；agent 数不进公式。
+- 局限：结构化分类漏掉未知故障类型；只约束探索阶段，证据出现后允许分支合并。
+
+### 5.9 话题状态机与无尽讨论终结
+
+话题生命周期：`OPEN → PLATEAU → ADJUDICATING → CLOSED（或 FROZEN）`。
+
+- **信息增益判定**（每次结构化提交计算，非字数）：新增独立血缘？改变假设排序？解决冲突/关闭盲区？产生新可证伪预测？改变止血决策期望效用？
+- **PLATEAU 触发**：连续 3 次结构化提交信息增益低于阈值。
+- **四重预算**：wall-clock / step / token / 查询成本，任一耗尽停止自动讨论。
+- **仲裁时间盒**：P1 plateau 立即进入 5-10 分钟仲裁；IC 四选一：① 确认根因关闭 ② 根因未明但执行可回滚止血 ③ 延期一次（须填新增预算与预期新证据）④ 宣布 inconclusive 冻结。
+- **无新证据即冻结**：冻结后聊天可写纪要，但结构化提案若无新 lineage/版本/前提变化 → 返回 `NO_NOVELTY`；重开必须带 `reopen_reason + new_evidence_ref + context_version`。
+- **关键边界**：终止的是讨论，不是响应——必须允许"根因未知下的最小风险止血"。
+
+### 5.10 正确性判定（claim verdict，不投票选 agent）
+
+判定层级（逐层递进，各层有明确局限）：
+
+| 层级 | 判定 | 局限 |
+|---|---|---|
+| 证据独立性 | 按底层数据源/采集链路/权限域去重 | 独立来源可共享隐含故障 |
+| 交叉验证 | 指标/日志/trace/变更审计对同一预测一致 | 相关≠因果 |
+| 反证存活 | 假设声明 falsifier 并承受最强反例 | "未推翻"≠正确 |
+| 混沌/canary | 主动操纵变量验证预测 | 有成本，自然恢复干扰 |
+| IC 裁决 | 人对业务风险/止血时机负责 | IC 会锚定/疲劳/受 UI 排序影响 |
+| 事后闭环 | 回看恢复/复发/回滚，计算校准误差 | 服务恢复≠根因正确 |
+
+最终产物是 **claim verdict**（证据等级 + 独立血缘数 + 反证状态 + 实验结果 + IC 决策 + 事后结果），而非"agent-b 正确率 82%"。**agent 声誉只能由历史 claim 分场景校准派生（按服务域/时间/版本衰减），禁止把声誉当成本次证据**。
+
+### 5.11 模型无关与成本路由
 
 平台自身所有 LLM 调用（无头调查员 / 蒸馏器 / 仲裁候选生成）**模型无关**（混元/DeepSeek/GLM/Claude 等可切换），并支持 **`--model auto` 成本感知路由**：分类/去重/指纹用便宜小模型，深挖 RCA/runbook 生成用强模型。本地 agent 的模型由工程师自选（BYO），平台只路由自己的计算。
 
@@ -321,7 +359,7 @@ hooks（可选）:
 
 ### 9.6 企业管理后台（多租户治理面）
 
-组织架构管理 · 成员授权控制 · 统一治理审计 · **成本管理**（token + 云 API 调用成本，对接 §5.8 模型路由）· 安全审计。目标：Agent 治理"从散装变统装"（借鉴 WorkBuddy 企业版）。
+组织架构管理 · 成员授权控制 · 统一治理审计 · **成本管理**（token + 云 API 调用成本，对接 §5.11 模型路由）· 安全审计。目标：Agent 治理"从散装变统装"（借鉴 WorkBuddy 企业版）。
 
 ---
 
@@ -392,7 +430,31 @@ capability:
 - **护栏不因接入方而异**：无论哪个 connector 执行，都走平台同一套护栏引擎；descriptor 声明 `permission / 变更窗口策略`。
 - **凭证最小化**：STS 按事故临时授予、只覆盖涉事实体，每环境独立。
 
-### 11.7 生态飞轮
+### 11.7 生态参与：Agent 接入三路径（不强迫 Swarms）
+
+| 路径 | 适用 | 机制 |
+|---|---|---|
+| **A. MCP 快速接入** | Claude Code / Codex 等 MCP client | 薄适配器：`check_in / work_claim / push_evidence / propose / get_context`，最低门槛 |
+| **B. OACP SDK 原生接入** | 自研 agent | Go/Python/TS SDK：schema/版本校验 · workload identity 签名 · 幂等 · context@vN diff · lease 心跳 · retry/背压/断线续传；Evidence/Hypothesis/Proposal/Decision 各自正式 schema（不再塞进 content） |
+| **C. Swarm backend 深度接入** | 使用 Agent Swarms 的团队 | `opshive` backend 镜像 mailbox/worker 生命周期/coordinator 事件；只是 runtime adapter，不是公共协议前提 |
+
+三路径统一过 **Agent Conformance Suite**：structured/unstructured 隔离 · incident 越权 · 伪造 IC · 重复请求 · 租约过期/晚到证据 · context 版本冲突 · 断连恢复 · 预算与冻结语义。
+
+**环境接入**：capability 独立解锁（observe→topology→typed action→verification/rollback→compliance）；**写能力默认关闭**；插件自报 `dry_run:true` 不算数，须 conformance 实测（模拟服务+故障注入+权限负测试+幂等+回滚全过才标"已验证"）。
+
+### 11.8 Skill/runbook 市场（知识≠可执行代码，分开治理）
+
+两类制品：**Runbook artifact**（适用范围/排除条件/证据/动作/成功条件/反例/依赖版本）与 **Skill pack**（MCP 工具/prompt/策略/可执行代码）。统一 manifest：`version / owner / supported_resources / permissions / requires_lease / safety_level / data_egress / SBOM / signature / provenance / test_vectors / revocation_endpoint`。
+
+- **发布流水线**：`draft → static/policy scan → replay → sandbox → canary → owner review → certified → revoked`；一次生产事故成功不能自动 certified。
+- **市场排序不用下载量/五星**，用：conformance 通过率 · 适用事故覆盖 · replay/canary 成功率 · 误修复率/回滚率 · 最近验证版本 · 已知反例数 · 维护响应时间。
+- **贡献阶梯**（低门槛→高价值）：修正文档/资源映射 → 提交脱敏故障轨迹/反例 → 只读 query capability → runbook → dry-run action → 完整 platform pack。
+- **低门槛设施**：`opshive init connector|skill|runbook` 脚手架 · 本地模拟控制平面与假云 · 公共脱敏 incident replay 数据集 · PR 自动跑 conformance 并输出人读失败原因 · 不要求贡献者提供真实云凭证。
+- **激励**：缺失 capability 与真实失败案例 bounty · replay/canary 后发放 credits · 按验证质量计算的公开 reputation · 高信誉者获 maintainer 权限 · 发现安全缺陷/反例/撤销理由同样奖励 · **奖励延迟到验证完成**，严重误修复降信誉（防刷包）。
+
+**十个最容易做错**（评审结论）：把 MCP 当多智能体协议（MCP 解决工具调用，不解决事实/仲裁/租约/终止）· 把 OACP 绑定到本地 mailbox 或单一 runtime · 允许客户端自称 FromIC/自写 Fact · 用 agent 数或多数票代替独立证据 · 市场做成无沙箱/无权限负测试/无紧急撤销的代码商店 · 以下载量奖励高风险自动化 · 一次成功执行认证为 runbook · 把 `rollback:true` 当事实不验证 · 共享轨迹泄露租户拓扑/命名 · 宣称 Tier3 边际成本趋零（成本只会转移不会消失）。
+
+### 11.9 生态飞轮
 
 开源 → 头部云 pack 免费贡献 → 插件市场 → 新公司多数直接命中已有 pack → "来一家实现一家"的问题被结构性消灭。**Pack 必须签名、锁版本、生成 SBOM、支持紧急撤销。**
 
