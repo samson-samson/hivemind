@@ -1,5 +1,17 @@
 # Hivemind（运维蜂巢）
 
+<p align="center">
+  <a href="https://samson-samson.github.io/hivemind/design/hivemind-promo.html">
+    <img src="docs/design/promo-hero.png" alt="Hivemind 宣传页 — 不造引擎，造蜂群" width="100%">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://samson-samson.github.io/hivemind/design/hivemind-promo.html"><strong>🎬 宣传页（中英双语）</strong></a> ·
+  <a href="docs/superpowers/specs/2026-08-12-hivemind-design.md"><strong>设计文档 v3.1</strong></a> ·
+  <a href="https://github.com/samson-samson/hivemind"><strong>GitHub</strong></a>
+</p>
+
 > **不造引擎，造蜂群。** / *Don't build another agent. Build the hive.*
 
 AIOps 多智能体故障协同平台：把 N 个工程师本地的 Claude Code / Codex 变成"一个互相感知、去重、持续蒸馏、可视化指挥的分布式排障大脑"。
