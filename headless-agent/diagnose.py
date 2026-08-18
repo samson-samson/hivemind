@@ -44,6 +44,19 @@ def fmt_report(result: dict) -> str:
     for a in result.get("recommended_actions", []):
         lines.append(f"- ({a.get('kind', '?')}/{a.get('risk', '?')}) {a.get('action', '')}")
     lines.append("")
+    # 告警质量：测试告警/level虚高/路由重复——测试环境"问题特别多"的关键分流信息
+    q = result.get("alert_quality")
+    if isinstance(q, dict) and any(q.get(k) for k in ("is_test_alert", "severity_overstated", "route_duplication")):
+        lines.append("## ⚠ 告警质量问题")
+        if q.get("is_test_alert"):
+            lines.append(f"- **测试告警**：{q.get('test_alert_reason', '疑似投递验证/测试回环，不应按生产事故处理')}")
+        if q.get("severity_overstated"):
+            lines.append("- **严重度虚高**：告警 level 配置与真实影响不匹配，建议调低")
+        if q.get("route_duplication"):
+            lines.append("- **路由重复**：同一告警被多个通知策略重复触发，会被重复计数放大")
+        if q.get("notes"):
+            lines.append(f"- 备注：{q['notes']}")
+        lines.append("")
     lines.append("## 未决问题与证据盲区")
     for q in result.get("open_questions", []):
         lines.append(f"- {q}")
@@ -131,31 +144,50 @@ def main() -> int:
         title = str(incident_meta.get("title", ""))
         symptoms = incident_meta.get("symptom_set", [])
         keywords = [title] + [str(s)[:30] for s in symptoms]
-        all_alerts = sls_reader.list_alerts(hours=max(24, args.hours), line=30)
+        all_alerts = sls_reader.list_alerts(hours=max(24, args.hours), line=120)
         matches = [a for a in all_alerts
                    if any(k and k.lower() in str(a.get("alarm", {}).get("alarmName", "")).lower()
                           or k and k.lower() in str(a.get("alarm", {}).get("describe", "")).lower() for k in keywords if k)]
+        # 从命中的告警名锁环境，避免采集到 dev/prod/casdoor 串房日志
+        ns = ""
+        for m in matches:
+            ns = sls_reader.cluster_env_from_alarm(m.get("alarm", {}))
+            if ns:
+                break
         ctx = {
             "incident": {"id": incident_meta.get("id"), "title": title,
                          "symptom_set": symptoms, "fingerprint": incident_meta.get("fingerprint")},
+            "_diagnosis_namespace": ns,
             "related_alerts": [m.get("alarm", {}) for m in matches[-3:]],
-            "gateway_errors": [l.summary for l in sls_reader.app_logs("gateway", hours=24, query="error", line=5)],
+            "gateway_errors": [l.summary for l in sls_reader.app_logs(
+                "gateway", hours=24, query="error", line=5, namespace=ns)],
+            "k8s_control_plane_errors": (
+                [l.summary for l in sls_reader.k8s_logs("apiserver", hours=24, line=3)]
+                + [l.summary for l in sls_reader.k8s_logs("kcm", hours=24, line=3)]),
         }
         ctx["incident_time"] = "incident-triggered"
         source_label = incident_meta.get("id", title)
     elif args.alert:
         # 从告警事件出发：按告警名取上下文（dev 环境真实故障告警）
         print(f"[2/3] 采集告警上下文（{args.alert}）…", file=sys.stderr)
-        matches = [a for a in sls_reader.list_alerts(hours=max(24, args.hours), line=20)
+        matches = [a for a in sls_reader.list_alerts(hours=max(24, args.hours), line=120)
                    if args.alert in str(a.get("alarm", {}).get("alarmName", ""))]
         if not matches:
             print(f"未找到告警 {args.alert}", file=sys.stderr)
             return 1
         alarm = matches[-1].get("alarm", {})  # 取最近一条
+        # 从告警名锁环境，避免采集到 dev/prod/casdoor 的串房日志
+        ns = sls_reader.cluster_env_from_alarm(alarm)
+        print(f"  锁定环境 namespace={ns or '(未解析，不过滤)'}", file=sys.stderr)
         ctx = {
             "incident": {"alarm": alarm},
+            "_diagnosis_namespace": ns,
             "related_alerts": [m.get("alarm", {}) for m in matches[-3:]],
-            "gateway_errors": [l.summary for l in sls_reader.app_logs("gateway", hours=24, query="error", line=5)],
+            "gateway_errors": [l.summary for l in sls_reader.app_logs(
+                "gateway", hours=24, query="error", line=5, namespace=ns)],
+            "k8s_control_plane_errors": (
+                [l.summary for l in sls_reader.k8s_logs("apiserver", hours=24, line=3)]
+                + [l.summary for l in sls_reader.k8s_logs("kcm", hours=24, line=3)]),
         }
         ctx["incident_time"] = matches[-1]["time"]
         source_label = args.alert
