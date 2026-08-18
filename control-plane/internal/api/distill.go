@@ -12,6 +12,7 @@ package api
 
 import (
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/samson-samson/hivemind/control-plane/internal/iam"
@@ -116,6 +117,100 @@ type knowledgeHit struct {
 	Summary   string `json:"summary"`
 }
 
+// tokenize 症状文本为中英混合词条：英文/数字按小写整词，中文按连续汉字段
+// 整段切分；中英文交界（如"GPU利用率"）也切开（不做分词器依赖，够召回匹配用）。
+func tokenize(s string) []string {
+	var out []string
+	var cur strings.Builder
+	curKind := -1
+	kindOf := func(r rune) int {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			return 0
+		case r >= 0x4e00 && r <= 0x9fff:
+			return 1
+		default:
+			return -1
+		}
+	}
+	for _, r := range strings.ToLower(s) {
+		k := kindOf(r)
+		if k < 0 {
+			if cur.Len() > 0 {
+				out = append(out, cur.String())
+				cur.Reset()
+			}
+			continue
+		}
+		if cur.Len() > 0 && curKind != k {
+			out = append(out, cur.String())
+			cur.Reset()
+		}
+		curKind = k
+		cur.WriteRune(r)
+	}
+	if cur.Len() > 0 {
+		out = append(out, cur.String())
+	}
+	return out
+}
+
+// expand 词条集：英文/数字整词直接用；中文段展开为字符 bigram。
+// 修复（第二轮）：整段中文一个 token 仍脆弱——"请求超时取消" vs
+// "请求超时被取消"只差一个"被"字就完全失配；bigram 展开后二者
+// 4/7≈0.57 强重叠，召回对"多一字少一字"鲁棒。
+func expand(s string) []string {
+	runes := []rune(s)
+	hasCJK := false
+	for _, r := range runes {
+		if r >= 0x4e00 && r <= 0x9fff {
+			hasCJK = true
+			break
+		}
+	}
+	if !hasCJK || len(runes) < 2 {
+		return []string{s}
+	}
+	out := make([]string, 0, len(runes)-1)
+	for i := 0; i+1 < len(runes); i++ {
+		out = append(out, string(runes[i:i+2]))
+	}
+	return out
+}
+
+// symptomJaccard 两段症状文本的展开词集 Jaccard 相似度（0~1）。
+// 修复：LLM 蒸馏产物是浓缩措辞（"GPU利用率异常"），告警是原始描述
+// （"GPU 利用率低于阈值"），字符串包含匹配召回率=0；bigram 展开后
+// 词级重叠才是"症状指纹"召回的正确语义。
+func symptomJaccard(a, b string) float64 {
+	var ea, eb []string
+	for _, t := range tokenize(a) {
+		ea = append(ea, expand(t)...)
+	}
+	for _, t := range tokenize(b) {
+		eb = append(eb, expand(t)...)
+	}
+	if len(ea) == 0 || len(eb) == 0 {
+		return 0
+	}
+	sa := map[string]bool{}
+	for _, t := range ea {
+		sa[t] = true
+	}
+	inter := 0
+	union := map[string]bool{}
+	for _, t := range ea {
+		union[t] = true
+	}
+	for _, t := range eb {
+		if sa[t] {
+			inter++
+		}
+		union[t] = true
+	}
+	return float64(inter) / float64(len(union))
+}
+
 func (s *Service) handleListKnowledge(w http.ResponseWriter, r *http.Request) {
 	incidentID := r.PathValue("id")
 	inc, err := s.store.GetIncident(r.Context(), incidentID)
@@ -124,7 +219,7 @@ func (s *Service) handleListKnowledge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	all, _ := s.store.ListAllRunbooks(r.Context())
-	// 召回：症状关键词重叠（命中越多分越高）；certified 优先。
+	// 召回：症状词级 Jaccard 相似度（命中越多分越高）；certified 优先。
 	var hits []knowledgeHit
 	for _, rb := range all {
 		if rb.Status != iam.RunbookCertified && rb.Status != iam.RunbookVerified {
@@ -133,19 +228,10 @@ func (s *Service) handleListKnowledge(w http.ResponseWriter, r *http.Request) {
 		score := 0.0
 		for _, sy := range inc.SymptomSet {
 			for _, rs := range rb.Symptoms {
-				if sy != "" && rs != "" && (strings.Contains(sy, rs) || strings.Contains(rs, sy)) {
-					score += 1
-				}
+				score += symptomJaccard(sy, rs)
 			}
 		}
-		for _, rs := range rb.Symptoms {
-			for _, sy := range inc.SymptomSet {
-				if sy != "" && rs != "" && (strings.Contains(rs, sy)) {
-					score += 0.5
-				}
-			}
-		}
-		if score > 0 {
+		if score >= 0.15 { // 至少一段症状有词级重叠才召回（防噪声）
 			hits = append(hits, knowledgeHit{
 				ID: rb.ID, Title: rb.Title, Kind: "runbook",
 				Score: score, Certified: rb.Status == iam.RunbookCertified,
@@ -153,6 +239,13 @@ func (s *Service) handleListKnowledge(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 	}
+	// certified 优先，同档按分数降序（认证链信任度排序）。
+	sort.Slice(hits, func(i, j int) bool {
+		if hits[i].Certified != hits[j].Certified {
+			return hits[i].Certified
+		}
+		return hits[i].Score > hits[j].Score
+	})
 	if hits == nil {
 		hits = []knowledgeHit{}
 	}

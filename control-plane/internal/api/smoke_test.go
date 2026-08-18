@@ -255,3 +255,80 @@ func doJSON(method, url string, body any) (registerOperationResponse, error) {
 	err = json.NewDecoder(httpResp.Body).Decode(&res)
 	return res, err
 }
+
+// TestSymptomJaccard 召回相似度（防回归）：
+// LLM 蒸馏措辞 vs 告警原始措辞，差一字/多一字都要有强信号。
+func TestSymptomJaccard(t *testing.T) {
+	cases := []struct {
+		a, b string
+		want float64 // 期望下限（>=want 即通过）
+	}{
+		// 同语义不同措辞：浓缩 vs 原始（原始召回场景）
+		{"GPU利用率异常", "GPU 利用率低于阈值", 0.2},
+		{"请求超时取消", "请求超时被取消", 0.4},
+		// 完全无关
+		{"GPU利用率异常", "casdoor认证延迟", 0.0},
+		// 英文整词
+		{"KV cache 耗尽", "kv cache", 0.5},
+	}
+	for _, c := range cases {
+		got := symptomJaccard(c.a, c.b)
+		if got < c.want {
+			t.Errorf("symptomJaccard(%q, %q)=%.3f, want >=%.2f", c.a, c.b, got, c.want)
+		} else {
+			t.Logf("symptomJaccard(%q, %q)=%.3f ✓", c.a, c.b, got)
+		}
+	}
+}
+
+// TestKnowledgeRecall E2E：浓缩 runbook 认证后，措辞不同的相似事故能召回。
+func TestKnowledgeRecall(t *testing.T) {
+	svc := NewService(iam.NewMemoryStore(), 0, 0)
+	srv := httptest.NewServer(svc.Handler())
+	defer srv.Close()
+
+	// 事故 A + 浓缩症状 runbook（模拟 distiller 产物）→ certified
+	var incA iam.Incident
+	postJSON(t, srv.URL+"/api/v1/incidents", map[string]any{
+		"title": "gpu-utilization-prod", "severity": "P1", "ic_id": "ic-alice",
+		"symptom_set": []string{"GPU利用率异常", "请求超时取消"}, "source": "alertmanager",
+	}, http.StatusCreated, &incA)
+
+	var rb iam.Runbook
+	postJSON(t, srv.URL+"/api/v1/incidents/"+incA.ID+"/runbooks", map[string]any{
+		"title": "GPU利用率异常且请求超时取消", "root_cause": "GPU调度层异常/KV cache耗尽",
+		"symptoms": []string{"GPU利用率异常", "请求超时取消", "推理服务排队"},
+		"diagnostic_steps": []string{"查调度日志", "查KV cache指标"},
+		"verification_actions": []string{"扩容推理Pod"}, "rollback": "恢复原配置",
+		"success_criteria": "GPU利用率恢复基线",
+	}, http.StatusCreated, &rb)
+
+	// IC 认证（certify 需要认证用户；内置 dev key → zhangqian）
+	req := httptest.NewRequest("PATCH", "/api/v1/runbooks/"+rb.ID, bytes.NewBufferString(`{"status":"certified"}`))
+	req.Header.Set("X-API-Key", "hivemind-dev-key")
+	rr := httptest.NewRecorder()
+	svc.Handler().ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("certify status=%d body=%s", rr.Code, rr.Body.String())
+	}
+
+	// 事故 B：措辞不同但语义相同 → 应召回 certified runbook
+	var incB iam.Incident
+	postJSON(t, srv.URL+"/api/v1/incidents", map[string]any{
+		"title": "gpu-utilization-low-prod", "severity": "P2", "ic_id": "ic-alice",
+		"symptom_set": []string{"GPU 利用率低于阈值", "请求超时被取消", "KV cache"}, "source": "alertmanager",
+	}, http.StatusCreated, &incB)
+
+	var hits []knowledgeHit
+	getJSON(t, srv.URL+"/api/v1/incidents/"+incB.ID+"/knowledge", http.StatusOK, &hits)
+	if len(hits) != 1 {
+		t.Fatalf("want 1 hit, got %d: %+v", len(hits), hits)
+	}
+	if !hits[0].Certified {
+		t.Errorf("certified runbook should rank first: %+v", hits[0])
+	}
+	if hits[0].Score < 0.3 {
+		t.Errorf("score=%.3f, want >=0.3 (浓缩vs原始措辞要有强信号)", hits[0].Score)
+	}
+	t.Logf("recall hit: score=%.3f certified=%v %s", hits[0].Score, hits[0].Certified, hits[0].Title)
+}

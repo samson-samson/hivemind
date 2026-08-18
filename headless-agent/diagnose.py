@@ -56,12 +56,18 @@ def fmt_report(result: dict) -> str:
     return "\n".join(lines)
 
 
-def push_to_platform(cp_base: str, incident_id: str, result: dict) -> list[str]:
+def push_to_platform(cp_base: str, incident_id: str, result: dict, api_key: str = "") -> list[str]:
     """把诊断结果写入 Hivemind 控制平面 IOM：每个假设成为一条 Hypothesis 发言。
 
     语义：headless-diagnoser 作为"数字员工"，通过「发言人」协议提交提案；
     会议室右侧假设面板与协同诊断流会实时出现这些发言。
+
+    认证：控制平面启用 API-key 认证（AuthMiddleware），push 必须带
+    X-API-Key 头，否则 401 导致整个诊断在提交步静默失败。
     """
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["X-API-Key"] = api_key
     posted = []
     for i, h in enumerate(result.get("hypotheses", [])):
         body = json.dumps({
@@ -75,7 +81,7 @@ def push_to_platform(cp_base: str, incident_id: str, result: dict) -> list[str]:
         req = urllib.request.Request(
             f"{cp_base}/api/v1/incidents/{incident_id}/hypotheses",
             data=body,
-            headers={"Content-Type": "application/json"},
+            headers=headers,
             method="POST",
         )
         with urllib.request.urlopen(req, timeout=30) as resp:
@@ -93,6 +99,7 @@ def main() -> int:
     ap.add_argument("--list", action="store_true", help="仅列出最近事故")
     ap.add_argument("--push", metavar="INCIDENT_ID", default="", help="把诊断假设写入控制平面事故（会议室可见）")
     ap.add_argument("--cp-base", default="http://localhost:8081", help="控制平面 base URL")
+    ap.add_argument("--api-key", default="", help="控制平面 API key（缺省读 HIVEMIND_API_KEY）")
     ap.add_argument("--alert", metavar="ALARM_NAME", default="", help="从指定告警（alertmanager-alarm-event）出发诊断")
     ap.add_argument("--incident-json", default="", help="被触发事故的 JSON（title/symptom_set），用于过滤采集，避免串房")
     args = ap.parse_args()
@@ -173,8 +180,10 @@ def main() -> int:
             json.dump(result, f, ensure_ascii=False, indent=2)
         print(f"\n报告已写入 {args.report}", file=sys.stderr)
     if args.push:
-        print(f"[4/4] 提交假设到控制平面（{args.cp_base}/incidents/{args.push}）…", file=sys.stderr)
-        push_to_platform(args.cp_base, args.push, result)
+        import os
+        api_key = args.api_key or os.environ.get("HIVEMIND_API_KEY", "hivemind-dev-key")
+        print(f"[4/4] 提交假设到控制平面（{args.cp_base}/api/v1/incidents/{args.push}/hypotheses）…", file=sys.stderr)
+        push_to_platform(args.cp_base, args.push, result, api_key)
     return 0
 
 
