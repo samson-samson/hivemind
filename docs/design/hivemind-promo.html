@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hivemind · 运维蜂巢 — 不造引擎，造蜂群</title>
-<meta name="description" content="Hivemind：AIOps 多智能体故障协同平台。把团队已有的 Claude Code / Codex 本地智能体的思考组织起来——去重、对齐、留证、交给人类裁决。">
+<meta name="description" content="Hivemind: a coordination layer for the local coding agents your team already runs during incidents. Shared evidence, query dedupe, human-gated writes. Don't build another agent — build the hive.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐝</text></svg>">
 <style>
   :root {
@@ -327,8 +327,8 @@
     </h1>
 
     <p class="hero-sub">
-      <span class="zhb">你团队的工程师已经在用本地 Claude Code / Codex 智能体排障——他们各自的 agent 正在重复查询同一批日志、得出互相冲突的结论。Hivemind 不造新引擎，它把已有 agent 的思考组织起来：去重、对齐、留证，把根因裁决交给人。</span>
-      <span class="enb">Your engineers already run local Claude Code / Codex agents — each one re-querying the same logs, reaching conflicting conclusions. Hivemind builds no new engine. It organizes the thinking of the agents you already run: dedupe, align, keep receipts — and leave root-cause verdicts to humans.</span>
+      <span class="zhb">凌晨三点，五个人对着同一个 pod 翻日志，每个人都在重跑同一条 kubectl——没人知道隔壁已经查过了。Hivemind 解决的就是这件事：不是 agent 不够聪明，是团队里的 agent 没有共享思考的那一层。它不替你判根因，只保证证据别丢、重复查询合并、写动作得有人点确认。</span>
+      <span class="enb">3am. Five engineers paging through the same pod, each re-running the same kubectl because nobody sees the person next to them already did. That's the actual problem — not "agents aren't smart enough," but that the agents on your team share no substrate for thinking together. Hivemind doesn't call the root cause. It just makes sure evidence survives, duplicate reads coalesce, and no write happens without a human clicking confirm.</span>
     </p>
 
     <div class="hero-cta">
@@ -375,8 +375,8 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="sec-eyebrow"><span class="zh">我们解决什么问题</span><span class="en">THE PROBLEM</span></div>
-      <h2 class="sec-title"><span class="zh">agent 不稀缺，共享思考才稀缺</span><span class="en">Agents are abundant. Shared thinking isn't.</span></h2>
-      <p class="sec-desc"><span class="zh">每个工程师桌面上的本地 agent 都在单打独斗。四次故障、四个会话、四份互相矛盾的结论——没人记录、无法复用。</span><span class="en">Local agents on every engineer's desk, fighting alone. Four incidents, four sessions, four contradictory conclusions — nothing recorded, nothing reusable.</span></p>
+      <h2 class="sec-title"><span class="zh">问题不在 agent 够不够聪明</span><span class="en">The bottleneck isn't agent intelligence</span></h2>
+      <p class="sec-desc"><span class="zh">每个工程师桌上的本地 agent 都挺好用。疼的是它们各跑各的——四次故障、四个终端、四份互相矛盾的结论，没人记下来，下次还得重来。</span><span class="en">Every engineer's local agent works fine. The pain is they run blind to each other — four incidents, four terminals, four contradictory answers, none of it written down, all of it redone next time.</span></p>
     </div>
     <div class="pain-grid">
       <div class="pain">
@@ -407,8 +407,8 @@
 <section class="insight">
   <div class="wrap">
     <p class="insight-big">
-      <span class="zhb">问题不是"agent 不够强"，而是<em class="accent" style="font-style:normal">agent 之间没有共享思考的基础设施</em>。我们不造引擎——我们造<em class="accent" style="font-style:normal">蜂群意识</em>。</span>
-      <span class="enb">The problem isn't that agents aren't capable — it's that <em class="accent" style="font-style:normal">agents share no infrastructure for thinking together</em>. We don't build engines. We build the <em class="accent" style="font-style:normal">hive mind</em>.</span>
+      <span class="zhb">所以这件事不是"造个更聪明的 agent"。是给已经存在的那些 agent，补上那层缺失的基础设施——让证据活得过这次会话、让重复的查询合并、让写动作要有人点头。我们不造引擎，我们造蜂巢。</span>
+      <span class="enb">So this isn't "build a smarter agent." It's giving the agents you already run the one layer they're missing — evidence that outlives the session, reads that coalesce, writes that need a human's nod. We don't build engines. We build the hive.</span>
     </p>
   </div>
 </section>
@@ -419,7 +419,7 @@
     <div class="sec-head">
       <div class="sec-eyebrow"><span class="zh">四大支柱</span><span class="en">FOUR PILLARS</span></div>
       <h2 class="sec-title"><span class="zh">四条反直觉的坚持</span><span class="en">Four counter-intuitive commitments</span></h2>
-      <p class="sec-desc"><span class="zh">行业都在做"更聪明的 agent"，我们做"更诚实的分工"。</span><span class="en">The industry races toward smarter agents. We build more honest division of labor.</span></p>
+      <p class="sec-desc"><span class="zh">这四条都不是流行做法。每条都对应我们踩过的一个坑——所以宁可笨一点，也不要那个坑再发生。</span><span class="en">None of these is the fashionable choice. Each one maps to a specific hole we fell into and don't intend to fall into again — so we'd rather be a bit dumber than re-dig that pit.</span></p>
     </div>
 
     <div class="pillar-row">
@@ -558,7 +558,7 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="sec-eyebrow"><span class="zh">可衡量</span><span class="en">MEASURABLE</span></div>
-      <h2 class="sec-title"><span class="zh">协同不是玄学，是可量化指标</span><span class="en">Coordination is measurable</span></h2>
+      <h2 class="sec-title"><span class="zh">我们量什么，就知道这事有没有用</span><span class="en">What we measure to know it's working</span></h2>
     </div>
     <div class="metric-grid">
       <div class="metric"><div class="arrow down">↓</div><div class="name"><span class="zh">无意重复率</span><span class="en">Unintentional duplication</span></div></div>
@@ -596,8 +596,8 @@
 <section class="final">
   <div class="wrap final-grid">
     <div>
-      <h2><span class="zhb">你的 agent，现在有蜂群了。</span><span class="enb">Your agents now have a hive.</span></h2>
-      <p><span class="zh">云中立，阿里云第一实现。任何本地 Claude Code / Codex 都能通过四档接入 + Conformance Suite 进场——带自己的工具来，带回整个团队的记忆走。</span><span class="en">Cloud-neutral, Aliyun first. Any local Claude Code / Codex joins via 4-tier access + the Conformance Suite — bring your own tools, leave with the team's memory.</span></p>
+      <h2><span class="zhb">代码在 GitHub，自己跑一遍。</span><span class="enb">The code's on GitHub. Run it yourself.</span></h2>
+      <p><span class="zh">云中立，阿里云是第一个参考实现。决定谁进场的是 Conformance Suite，不是我们——本地 Claude Code / Codex 通过四档接入验证，你的 agent 自带工具，团队的记忆留在事故事实层里。</span><span class="en">Cloud-neutral, with Alibaba Cloud as the first reference implementation. Who joins is decided by the Conformance Suite, not by us — local Claude Code / Codex clears it via four-tier access verification. Your agents bring their own tools; the team's memory lives in the incident fact layer.</span></p>
       <div class="btns">
         <a class="btn honey" href="https://github.com/samson-samson/hivemind" target="_blank" rel="noopener"><span class="zh">GitHub 点亮星星</span><span class="en">Star on GitHub</span> ↗</a>
         <a class="btn" href="https://github.com/samson-samson/hivemind/blob/main/docs/superpowers/specs/2026-08-12-hivemind-design.md" target="_blank" rel="noopener"><span class="zh">读设计文档</span><span class="en">Read the spec</span></a>
@@ -624,7 +624,7 @@
     <span class="sp">·</span>
     <a href="https://github.com/samson-samson/hivemind/blob/main/docs/superpowers/specs/2026-08-12-hivemind-design.md" target="_blank" rel="noopener">design spec v3.1</a>
     <span style="margin-left:auto">
-      <span class="zh">概念与心智，先到先得。</span><span class="en">The concept is the moat — claim it first.</span>
+      <span class="zh">读设计文档，自己判断这事值不值得做。</span><span class="en">Read the spec. Decide for yourself whether it's worth doing.</span>
     </span>
   </div>
 </footer>

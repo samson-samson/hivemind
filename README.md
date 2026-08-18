@@ -2,70 +2,105 @@
 
 <p align="center">
   <a href="https://samson-samson.github.io/hivemind/design/hivemind-promo.html">
-    <img src="docs/design/promo-hero.png" alt="Hivemind 宣传页 — 不造引擎，造蜂群" width="100%">
+    <img src="docs/design/promo-hero.png" alt="Hivemind" width="100%">
   </a>
 </p>
 
 <p align="center">
-  <a href="https://samson-samson.github.io/hivemind/design/hivemind-promo.html"><strong>🎬 宣传页（中英双语）</strong></a> ·
-  <a href="docs/superpowers/specs/2026-08-12-hivemind-design.md"><strong>设计文档 v3.1</strong></a> ·
+  <a href="https://samson-samson.github.io/hivemind/design/hivemind-promo.html"><strong>Promo (中/EN)</strong></a> ·
+  <a href="docs/superpowers/specs/2026-08-12-hivemind-design.md"><strong>Design doc v3.1</strong></a> ·
   <a href="https://github.com/samson-samson/hivemind"><strong>GitHub</strong></a>
 </p>
 
-> **不造引擎，造蜂群。** / *Don't build another agent. Build the hive.*
+> **Don't build another agent. Build the hive.** / 不造引擎，造蜂群。
 
-AIOps 多智能体故障协同平台：把 N 个工程师本地的 Claude Code / Codex 变成"一个互相感知、去重、持续蒸馏、可视化指挥的分布式排障大脑"。
+It's 3am. Five engineers are paging through the same pod. Each re-runs the same
+`kubectl logs`, because nobody sees that the person next to them already did.
+That's the problem Hivemind actually solves — not "agents aren't smart enough,"
+but that the agents on your team have no substrate for shared thinking.
 
-**宣传页（中英双语）**：[docs/design/hivemind-promo.html](docs/design/hivemind-promo.html) · 设计文档（权威契约）：`docs/superpowers/specs/2026-08-12-hivemind-design.md`
+Every engineer's desk already runs a local Claude Code or Codex. Hivemind doesn't
+replace them. It bolts on the one layer they're missing: a shared fact base where
+evidence lives longer than a terminal session, duplicate reads get coalesced, and
+no write happens without a human clicking confirm.
 
-## 为什么是 Hivemind / Why
+**是不是又一个 AIOps 平台？** Not really. Most AIOps tries to build a smarter
+agent that ingests everything and tells you the root cause. We learned the hard
+way that's a dead end — see [§1.2 of the design doc](docs/superpowers/specs/2026-08-12-hivemind-design.md).
+The value isn't in a cleverer engine, it's in coordination and in knowledge that
+survives the incident. So we don't build an agent. We build the coordination
+around the ones that already exist.
 
-你的团队已经有 agent 了——每个工程师桌面上都跑着本地 Claude Code / Codex。问题不是"agent 不够强"，而是 **agent 之间没有共享思考的基础设施**：
+## Why it exists
 
-| 痛点 | 现状 | Hivemind 的答案 |
-|---|---|---|
-| 同样的查询五个人各跑一遍 | token 和时间成倍烧掉 | **查询级去重**：操作指纹 single-flight 合并 |
-| 结论互相矛盾，没有共同事实 | 只能靠嗓门说服 | **证据先于聊天**：结构化证据进事实层，聊天不进 |
-| 排过的障下次重来 | 知识死在个人会话里 | **发生过 ≠ 可复用**：双流水线蒸馏 + 认证链 |
-| 只有建议，没有可审计决策 | 责任甩给疲惫的 on-call | **写操作永远人审**：证据门禁 + dry-run 默认 |
+The thing that actually wastes money on an incident isn't a wrong hypothesis — it's
+five people independently paying the same token cost for the same query, and the
+right evidence getting lost when someone's `tmux` dies. The four lines below are
+the four ways we stop that from happening. None of them are novel; all of them are
+usually missing.
 
-## 四大支柱 / Four pillars
+- **Evidence before chat.** A war room can argue forever; the fact layer can't.
+  Structured evidence gets a slot, chat doesn't. Whether a root cause is *true*
+  is still called by a human — we just make sure the evidence is still there when
+  they call it.
+- **Query-level dedupe.** One read benefits the whole team. We single-flight on an
+  operation fingerprint, not distributed-lock the work — because a redundant read
+  is cheap and a dropped hypothesis isn't. Coordination is "minimize accidental
+  duplication + cross-validate with controlled redundancy," never "zero duplication."
+- **Knowledge distillation, two phases.** "It happened before" ≠ "it's reusable."
+  During the incident we only emit candidates; after, a review chain certifies them
+  (`candidate → reviewed → validated → certified → revoked`). The LLM proposes;
+  compile/policy/tests decide what ships.
+- **Writes are always human-gated.** No write path without a threat model — P0 ships
+  with none. AI locates, a human decides, a machine acts only with evidence attached.
 
-1. **证据先于聊天** — 讨论可以无限，事实层必须有界。根因真假归人裁决。
-2. **查询级去重** — 一次查询全队受益。排障不是互斥写入：无意重复最小化 + 受控冗余交叉验证。
-3. **知识蒸馏** — 事故中只产候选，事故后认证；认证链 candidate→verified→certified→revoked。
-4. **恢复闭环** — AI 定位，人拍板，机器执行必须有证据；无威胁模型不进写路径。
+## What we refused to build
 
-## 我们不做什么 / What we refuse to do
+No agent engine (we reuse local Claude Code/Codex via a thin MCP adapter). No
+"fully autonomous expert team" — agents default to IC + PMA + evidence gating. No
+LLM-published knowledge — candidates must clear the certification chain.
 
-✕ 不造 agent 引擎（复用本地 Claude Code/Codex，薄 MCP 适配器） · ✕ 不做"全自主专家团"（默认受 IC + PMA + 证据门控约束） · ✕ 不让 LLM 直接发布知识（候选必须过认证链） · ✕ 无威胁模型处开放写路径（P0 只读）。
+It's worth saying the quiet part out loud: a lot of these decisions are reactive.
+We shipped a thing called aievo once that did build the engine. It was the wrong
+shape. The four lines above are what was left after removing the parts that didn't
+earn their keep.
 
-## 已跑通 / Verified end-to-end
+## What actually runs
 
-真实阿里云 SLS 告警 → 自动开独立会议室 → headless-diagnoser 读真实日志 → LLM（GLM-5.2）产出结构化假设 → IC 决策 → 蒸馏认证 runbook → 相似事故秒级召回（词级 Jaccard）→ 恢复动作证据门禁 + dry-run。三闭环全部本机实测，零生产副作用。
+We tested it end-to-end on real Alibaba Cloud SLS alerts. A genuine alarm fires → a
+dedicated war room opens → the headless diagnoser reads real logs → GLM-5.2 produces
+structured hypotheses → the IC decides → a runbook is distilled and certified → a
+similar incident later recalls in seconds (token-level Jaccard) → any recovery action
+hits an evidence gate + dry-run. Three closed loops, all run locally, zero production
+side effects.
 
-- **云中立，阿里云为第一实现**（SLS/ARMS/ACK/ChaosBlade）。
-- **开源项目 + 参考实现**，Apache-2.0。
+Cloud-agnostic with Alibaba Cloud as the first implementation (SLS / ARMS / ACK /
+ChaosBlade). Open source under Apache-2.0 — a project plus a reference implementation,
+not a product pitch.
 
-> 开发约定与模型分工：`CLAUDE.md`
+> Dev conventions and model routing live in `CLAUDE.md`.
 
-## 目录
+## Repo layout
 
 ```
-control-plane/    Go 控制平面：IOM、工作图、查询协调、证据总线、护栏、安全
-distiller/        Python：候选蒸馏、认证流水线、知识图谱
-adapter/          MCP 适配器「发言人」+ 各 agent 接入示例
-headless-agent/   无头调查员（数字员工）
-console/          React/TS 指挥室前端
-packs/            预制环境包：aliyun(旗舰) · k8s · prometheus · aws · azure · sls
-adapter-protocol/ Capability Descriptor（gRPC + OpenAPI）
-adapter-sdk/      connector 插件 SDK
-adapter-generator/ descriptor → connector 生成器
-conformance/      connector 验收套件
-infra/            Terraform（阿里云）+ Helm
-docs/             设计文档 + 实施简报
+control-plane/    Go control plane: incident object model, work graph, query coordination, evidence bus, guardrails, security
+distiller/        Python: candidate distillation, certification chain, knowledge graph
+adapter/          MCP "spokesperson" adapter + per-agent onboarding examples
+headless-agent/   the headless investigator (the digital worker)
+console/          React/TS incident command UI
+packs/            prebuilt environment packs: aliyun · k8s · prometheus · aws · azure · sls
+adapter-protocol/ capability descriptor (gRPC + OpenAPI)
+adapter-sdk/      connector plugin SDK
+adapter-generator/ descriptor → connector generator
+conformance/      connector acceptance suite
+infra/            Terraform (Alibaba Cloud) + Helm
+docs/             design doc + implementation briefs
 ```
 
-## 路线图
+## Roadmap
 
-P0 只读协同账本（当前）→ P1 评测检索 → P2 候选生成 → P3 强类型可回滚动作 → P4 生态。
+We're on P0. It's deliberately a read-only coordination ledger — work graph +
+query dedupe + evidence lineage + a human IC + a v1 command room. No write path,
+because none of this earns one yet. P1 → retrieval/evals, P2 → candidate
+generation, P3 → typed reversible actions (single K8s target), P4 → ecosystem.
+We don't ship a phase until the previous one has run on real incidents.
