@@ -40,8 +40,7 @@ export function IncidentSidebar({ activeId }: { activeId: string }) {
                 </span>
               </div>
               <div className="mt-1 line-clamp-2 text-xs font-medium text-zinc-200">{inc.title}</div>
-              <div className="mt-1 font-mono text-[10px] text-zinc-500">{inc.fingerprint}</div>
-              <div className="mt-0.5 text-[10px] text-zinc-500">
+              <div className="mt-1 text-[10px] text-zinc-500">
                 IC {inc.ic_name} · {fmtTime(inc.time_range.start)} 起
               </div>
             </Link>
@@ -78,10 +77,9 @@ function IncidentDetail() {
       <section className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">事故信息</h2>
         <dl className="mt-3 space-y-2 text-sm">
-          <Row k="指纹" v={<span className="font-mono text-xs">{inc.fingerprint}</span>} />
           <Row k="状态" v={STATUS_LABEL[inc.status]} />
           <Row k="严重度" v={inc.severity} />
-          <Row k="IC" v={`${inc.ic_name}（${inc.ic_id}）`} />
+          <Row k="IC" v={inc.ic_name} />
           <Row k="时间窗" v={`${fmtTime(inc.time_range.start)} — 进行中`} />
           <Row k="来源" v={inc.source} />
         </dl>

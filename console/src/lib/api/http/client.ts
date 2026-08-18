@@ -438,7 +438,9 @@ export class HttpHivemindApi implements HivemindApi {
     handler: (event: IncidentEvent) => void,
     onError?: (err: unknown) => void,
   ): () => void {
-    const es = new EventSource(`${BASE}/api/v1/incidents/${id}/events`);
+    // EventSource 不支持自定义 header，原生 SSE 无法带 X-API-Key。
+    // 后端 AuthMiddleware 已兼容 ?api_key= 查询参数（auth.go），故 SSE 走 query 传 key。
+    const es = new EventSource(`${BASE}/api/v1/incidents/${id}/events?api_key=${encodeURIComponent(API_KEY)}`);
     this.eventSources.set(id, es);
     const listen = (ev: MessageEvent<string>) => {
       // 服务端格式：event: <type>\ndata: {"id","type","source","timestamp","data":{...}}

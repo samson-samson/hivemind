@@ -142,7 +142,7 @@ function FactLedger({ incidentId }: { incidentId: string }) {
           {nextAction.kind === 'node' ? (
             <><div className="v">{nextAction.question}</div><div className="who">建议认领 · {nextAction.role}</div></>
           ) : (
-            <><div className="v">验证假设：{nextAction.topic.slice(0, 60)}</div><div className="who">置信 {fmtPct(nextAction.confidence)}</div></>
+            <><div className="v">验证当前最高置信假设（置信 {fmtPct(nextAction.confidence)}）</div><div className="who">见上矩阵</div></>
           )}
         </div>
       )}
@@ -156,7 +156,7 @@ function HypothesisMatrix({ incidentId, onArbitrate }: { incidentId: string; onA
     <div className="hyp-table-wrap">
     <table className="hyp-matrix">
       <thead>
-        <tr><th>假设</th><th>独立证据域</th><th>反证</th><th>可证伪预测</th></tr>
+        <tr><th>假设</th><th>独立证据</th><th>反证</th><th>操作</th></tr>
       </thead>
       <tbody>
         {(hypotheses ?? []).sort((a, b) => b.confidence - a.confidence).map((h) => {
@@ -175,8 +175,8 @@ function HypothesisMatrix({ incidentId, onArbitrate }: { incidentId: string; onA
                 </div>
                 <div className="weak">{h.proposed_by} · {fmtTime(h.updated_at)}</div>
               </td>
-              <td><span className="lineage-tag">{h.independence_weight > 0.6 ? '2-3 lineage' : h.independence_weight > 0.3 ? '1-2 lineage' : '1 lineage'}</span></td>
-              <td className="weak">{h.refuting.length}{conflicted ? `（agent-c 反证中）` : ''}</td>
+              <td><span className="lineage-tag">{h.independence_weight > 0.6 ? '2-3 条证据链' : h.independence_weight > 0.3 ? '1-2 条证据链' : '1 条证据链'}</span></td>
+              <td className="weak">{h.refuting.length}{conflicted ? `（反证中）` : ''}</td>
               <td className="falsifier">{h.status === 'refuted' ? '—' : <button className="arb-btn" onClick={() => onArbitrate(h)}>仲裁 / 反证</button>}</td>
             </tr>
           );
@@ -282,10 +282,6 @@ export function MeetingRoom() {
           <span className="k">经验命中</span>
           <span className="v mono">{(knowledge ?? []).length}</span>
         </div>
-        <div className="ctx-meta">
-          <span>ctx@{events?.length ?? 0}</span>
-          <span>{incidentId.slice(0, 14)}</span>
-        </div>
       </div>
 
       {/* 三栏：工作图 / 事实账本 / 假设矩阵+IC 决策 */}
@@ -333,12 +329,16 @@ export function MeetingRoom() {
         </div>
       </div>
 
-      {/* 底部抽屉：活动流（审计信息，降级） */}
+      {/* 底部抽屉：活动流（审计信息，降级）。全 0 时不堆无信息量的统计条。 */}
       <div className="drawer">
         <span className="t">活动流 · 收起</span>
-        <span className="stat">协作纪要 <b>{flowCount}</b> 条</span>
-        <span className="stat">去重查询 <b className="sky">{dedupCount}</b></span>
-        <span className="stat">事实 <b className="ok">{stats?.facts_confirmed ?? 0}</b> / 未解 <b className="warn">{stats?.open_questions ?? 0}</b></span>
+        {(flowCount > 0 || dedupCount > 0 || (stats?.facts_confirmed ?? 0) > 0 || (stats?.open_questions ?? 0) > 0) && (
+          <>
+            <span className="stat">协作纪要 <b>{flowCount}</b> 条</span>
+            <span className="stat">去重查询 <b className="sky">{dedupCount}</b></span>
+            <span className="stat">事实 <b className="ok">{stats?.facts_confirmed ?? 0}</b> / 未解 <b className="warn">{stats?.open_questions ?? 0}</b></span>
+          </>
+        )}
         <span className="toggle">展开 ↑</span>
       </div>
     </div>
